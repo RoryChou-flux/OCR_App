@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Vision</string>
+    <string name="title_toolbar">OCR识别矫正程序</string>
+    <string name="profile_image_desc">用户头像</string>
+    <string name="greeting_text">你好，亲爹!</string>
+    <string name="start_recognition">开始识别</string>
+</resources>
