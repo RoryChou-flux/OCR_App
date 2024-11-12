@@ -1,7 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Vision</string>
-    <string name="title_toolbar">OCR识别矫正程序</string>
-    <string name="profile_image_desc">用户头像</string>
-    <string name="greeting_text">你好，亲爹!</string>
-    <string name="start_recognition">开始识别</string>
+    <string name="app_name">OCR助手</string>
+    <string name="title_toolbar">OCR助手</string>
+    <string name="title_app">智能识别助手</string>
+
+    <!-- 功能卡片 -->
+    <string name="latex_title">数学公式识别</string>
+    <string name="latex_desc">快速识别数学公式，自动转换为LaTeX</string>
+    <string name="document_title">文档矫正</string>
+    <string name="document_desc">自动矫正文档倾斜，优化扫描效果</string>
+
+    <!-- 使用提示 -->
+    <string name="tips_title">使用提示</string>
+    <string name="tips_light">• 保持光线充足，避免阴影</string>
+    <string name="tips_align">• 对准内容区域，减少倾斜</string>
+    <string name="tips_support">• 支持手写与印刷体识别</string>
+
+    <!-- 按钮描述 -->
+    <string name="desc_history">历史记录</string>
+    <string name="desc_logo">应用图标</string>
+    <string name="desc_latex_icon">公式识别图标</string>
+    <string name="desc_document_icon">文档矫正图标</string>
+
+    <!-- 版本信息 -->
+    <string name="version_info">Version 1.0.0</string>
+
+    <!-- 图片描述 -->
+    <string name="desc_background">背景图片</string>
+
+    <!-- 拍照界面 -->
+        <string name="desc_flash_button">切换闪光灯</string>
+        <string name="desc_switch_camera">切换前后摄像头</string>
+        <string name="desc_capture_button">拍照</string>
+        <string name="desc_gallery_button">打开相册</string>
+        <string name="desc_camera_preview">相机预览</string>
+        <string name="camera_title">相机</string>
+
+    <!-- 裁切 -->
+    <string name="cancel">取消</string>
+    <string name="done">完成</string>
+
+    <!-- 历史记录相关 -->
+    <string name="history_title">历史记录</string>
+    <string name="empty_history_title">暂无历史记录</string>
+    <string name="empty_history_desc">拍照识别或导入图片即可看到记录</string>
+    <string name="clear_history_confirm">确定要清空所有历史记录吗？</string>
+    <string name="clear_history_confirm_btn">清空</string>
+    <string name="clear_history_cancel_btn">取消</string>
+    <string name="history_cleared">历史记录已清空</string>
+    <string name="no_history_records">暂无历史记录</string>
+    <string name="capture_or_import_to_see_records">拍照识别或导入图片即可看到记录</string>
+
+    <!-- 类型标签 -->
+    <string name="type_latex">LaTeX公式</string>
+    <string name="type_document">文档处理</string>
+
+    <!-- 描述文本 -->
+    <string name="desc_history_thumbnail">历史记录缩略图</string>
+    <string name="desc_back">返回</string>
+    <string name="desc_clear">清空历史</string>
+    <string name="desc_empty_icon">空状态图标</string>
+
+    <!-- 时间格式 -->
+    <string name="time_today">今天 %s</string>
+    <string name="time_yesterday">昨天 %s</string>
+    <string name="time_date">%s</string>
+
 </resources>

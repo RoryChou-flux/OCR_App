@@ -7,4 +7,22 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="colorPrimary">#2196F3</color>
+    <color name="colorPrimaryDark">#1976D2</color>
+    <color name="colorAccent">#FF4081</color>
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    <color name="background_light">#FAFAFA</color>
+    <color name="divider">#EEEEEE</color>
+    <color name="transparent">#00000000</color>
+    <!-- 历史记录卡片背景色（交替） -->
+    <color name="history_card_1">#FF3F7FE4</color>
+    <color name="history_card_2">#FF9C27B0</color>
+
+    <!-- 标签背景色 -->
+    <color name="tag_latex">#FF2196F3</color>
+    <color name="tag_document">#FF4CAF50</color>
+
+    <!-- 文本颜色 -->
+    <color name="text_hint">#61000000</color>
 </resources>

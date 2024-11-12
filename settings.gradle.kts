@@ -7,15 +7,27 @@ pluginManagement {
                 includeGroupByRegex("androidx.*")
             }
         }
-        mavenCentral()
+        maven {
+            url = uri("https://maven.aliyun.com/repository/public")
+            content {
+                includeGroupByRegex("com\\.android.*")
+                includeGroupByRegex("com\\.google.*")
+                includeGroupByRegex("androidx.*")
+            }
+        }
         gradlePluginPortal()
+        // 添加 JitPack 仓库
+        maven { url = uri("https://jitpack.io") }
     }
 }
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
-        mavenCentral()
+        maven {
+            url = uri("https://maven.aliyun.com/repository/public")
+        }
+        maven { url = uri("https://jitpack.io") }
     }
 }
 
