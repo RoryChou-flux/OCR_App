@@ -18,6 +18,10 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
 
+    <!-- Android 14照片选择器权限 -->
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
+        android:minSdkVersion="34"/>
+
     <!-- 声明需要相机硬件 -->
     <uses-feature
         android:name="android.hardware.camera"
@@ -39,30 +43,58 @@
         <!-- 主活动 -->
         <activity
             android:name=".MainActivity"
+            android:configChanges="orientation|screenSize"
             android:exported="true"
-            android:theme="@style/Theme.Vision">
+            android:screenOrientation="unspecified"
+            android:theme="@style/Theme.Vision.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
         </activity>
 
         <!-- 相机活动 -->
         <activity
             android:name=".CameraActivity"
             android:configChanges="orientation|screenSize"
+            android:screenOrientation="unspecified"
             android:theme="@style/Theme.Vision.NoActionBar" />
 
         <!-- 裁剪活动 -->
         <activity
             android:name=".CropActivity"
             android:configChanges="orientation|screenSize"
+            android:screenOrientation="unspecified"
+            android:theme="@style/Theme.Vision.NoActionBar" />
+
+        <!-- 文档处理活动 -->
+        <activity
+            android:name=".DocumentActivity"
+            android:configChanges="orientation|screenSize"
+            android:screenOrientation="unspecified"
+            android:theme="@style/Theme.Vision.NoActionBar" />
+
+        <!-- LaTeX处理活动 -->
+        <activity
+            android:name=".LatexActivity"
+            android:configChanges="orientation|screenSize"
+            android:screenOrientation="unspecified"
+            android:theme="@style/Theme.Vision.NoActionBar" />
+
+        <!-- 历史记录活动 -->
+        <activity
+            android:name=".HistoryActivity"
+            android:configChanges="orientation|screenSize"
+            android:screenOrientation="unspecified"
             android:theme="@style/Theme.Vision.NoActionBar" />
 
         <!-- UCrop活动 -->
         <activity
             android:name="com.yalantis.ucrop.UCropActivity"
-            android:screenOrientation="portrait"
+            android:screenOrientation="unspecified"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
 
         <!-- FileProvider配置 -->
@@ -76,6 +108,8 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+
+
         <!-- UCrop专用Provider -->
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -85,11 +119,7 @@
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/ucrop_provider_paths" />
-
-
         </provider>
-
-        <activity android:name=".HistoryActivity" />
 
     </application>
 

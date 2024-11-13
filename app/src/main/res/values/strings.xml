@@ -70,4 +70,68 @@
     <string name="time_yesterday">昨天 %s</string>
     <string name="time_date">%s</string>
 
+    <string name="document_name">文档扫描</string>
+
+    <!-- 主界面 -->
+    <string name="main_title">扫描选项</string>
+    <string name="latex_scan">数学公式</string>
+    <string name="document_scan">文档扫描</string>
+    <string name="history">历史记录</string>
+    <string name="press_again_exit">再按一次退出应用</string>
+
+    <!-- 相机界面 -->
+    <string name="camera_error">相机启动失败</string>
+    <string name="photo_save_success">照片保存成功</string>
+    <string name="photo_save_failed">照片保存失败</string>
+    <string name="flash_not_supported">前置摄像头不支持闪光灯</string>
+
+    <!-- 裁剪界面 -->
+    <string name="crop_title">裁剪图片</string>
+    <string name="crop_failed">裁剪失败</string>
+    <string name="continue_capture">继续拍摄</string>
+    <string name="finish_capture">完成拍摄</string>
+    <string name="continue_prompt">是否需要继续拍摄下一页？</string>
+
+    <!-- 文档处理界面 -->
+    <string name="photo_count">%d 页</string>
+    <string name="export_pdf">导出PDF</string>
+    <string name="export_png">导出PNG</string>
+    <string name="add_photo">添加照片</string>
+    <string name="delete_photo">删除照片</string>
+    <string name="delete_confirm">确定要删除这张照片吗？</string>
+    <string name="delete">删除</string>
+    <string name="confirm">确定</string>
+
+    <!-- 导出相关 -->
+    <string name="exporting">正在导出…</string>
+    <string name="export_success">导出成功</string>
+    <string name="export_failed">导出失败：%s</string>
+    <string name="pdf_saved">PDF文件已保存</string>
+    <string name="png_saved">PNG文件已保存</string>
+    <string name="share">分享</string>
+    <string name="no_photos">请先添加照片</string>
+
+    <!-- 权限相关 -->
+    <string name="permission_required">需要相关权限才能使用此功能</string>
+    <string name="permission_granted">已获得所需权限</string>
+
+    <!-- 错误提示 -->
+    <string name="error_unknown">未知错误</string>
+    <string name="error_no_image">未找到图片</string>
+    <string name="error_process_failed">处理失败</string>
+
+    <string name="photo_count_format">%d 页</string>
+    <string name="export_pdf_desc">导出为PDF文件</string>
+    <string name="export_png_desc">导出为PNG图片</string>
+    <string name="add_photo_desc">添加更多照片</string>
+
+    <!-- 照片描述相关 -->
+    <string name="desc_photo">照片预览</string>
+    <string name="desc_delete">删除照片</string>
+    <string name="delete_confirm_title">删除确认</string>
+    <string name="delete_confirm_message">确定要删除这张照片吗？</string>
+    <string name="share_file">分享文件</string>
+    <string name="export_success_message">%s文件已成功导出</string>
+    <string name="close">关闭</string>
+
 </resources>

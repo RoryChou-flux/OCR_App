@@ -25,4 +25,36 @@
 
     <!-- 文本颜色 -->
     <color name="text_hint">#61000000</color>
+
+    <color name="primary">#006A66</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="primary_container">#6FF7F2</color>
+    <color name="on_primary_container">#002020</color>
+
+    <color name="secondary">#4A6362</color>
+    <color name="on_secondary">#FFFFFF</color>
+    <color name="secondary_container">#CCE8E7</color>
+    <color name="on_secondary_container">#051F1F</color>
+
+    <color name="tertiary">#4B607C</color>
+    <color name="on_tertiary">#FFFFFF</color>
+    <color name="tertiary_container">#D3E4FF</color>
+    <color name="on_tertiary_container">#001C39</color>
+
+    <color name="error">#BA1A1A</color>
+    <color name="on_error">#FFFFFF</color>
+    <color name="error_container">#FFDAD6</color>
+    <color name="on_error_container">#410002</color>
+
+    <color name="background">#FAFDFB</color>
+    <color name="on_background">#191C1C</color>
+    <color name="surface">#FAFDFB</color>
+    <color name="on_surface">#191C1C</color>
+    <color name="surface_variant">#DAE5E3</color>
+    <color name="on_surface_variant">#3F4948</color>
+
+    <color name="outline">#6F7978</color>
+    <color name="outline_variant">#BFC9C8</color>
+
+    <color name="scrim">#99000000</color>
 </resources>

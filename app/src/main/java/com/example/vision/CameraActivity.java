@@ -22,6 +22,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 
@@ -38,6 +39,9 @@ public class CameraActivity extends AppCompatActivity {
     private MaterialButton galleryButton;
     private boolean isFlashOn = false;
     private boolean isFrontCamera = false;
+
+    // 添加照片列表管理
+    private ArrayList<DocumentPhotoManager.PhotoItem> photoItems = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,29 +65,22 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     private void setClickListeners() {
-        // 拍照按钮监听器
         captureButton.setOnClickListener(v -> takePhoto());
 
-        // 闪光灯按钮监听器
         flashButton.setOnClickListener(v -> {
             if (isFrontCamera) {
                 Toast.makeText(this, "前置摄像头不支持闪光灯", Toast.LENGTH_SHORT).show();
                 return;
             }
-            // 切换闪光灯状态
             isFlashOn = !isFlashOn;
-            // 更新闪光灯图标
             flashButton.setIconResource(isFlashOn ? R.drawable.ic_flash_on : R.drawable.ic_flash_off);
-            // 根据闪光灯状态配置相机闪光灯
             if (imageCapture != null) {
                 imageCapture.setFlashMode(isFlashOn ? ImageCapture.FLASH_MODE_ON : ImageCapture.FLASH_MODE_OFF);
             }
         });
 
-        // 切换前后摄像头按钮监听器
         switchCameraButton.setOnClickListener(v -> {
             isFrontCamera = !isFrontCamera;
-            // 切换摄像头时关闭闪光灯
             if (isFrontCamera && isFlashOn) {
                 isFlashOn = false;
                 flashButton.setIconResource(R.drawable.ic_flash_off);
@@ -91,7 +88,6 @@ public class CameraActivity extends AppCompatActivity {
             startCamera();
         });
 
-        // 相册导入按钮监听器
         galleryButton.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
             startActivityForResult(intent, REQUEST_CODE_GALLERY);
@@ -115,26 +111,19 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     private void bindCameraUseCases(@NonNull ProcessCameraProvider cameraProvider) {
-        // 预览配置
-        Preview preview = new Preview.Builder()
-                .build();
+        Preview preview = new Preview.Builder().build();
         preview.setSurfaceProvider(previewView.getSurfaceProvider());
 
-        // 图片捕获配置
         imageCapture = new ImageCapture.Builder()
                 .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                 .build();
 
-        // 相机选择器
         CameraSelector cameraSelector = isFrontCamera ?
                 CameraSelector.DEFAULT_FRONT_CAMERA :
                 CameraSelector.DEFAULT_BACK_CAMERA;
 
         try {
-            // 解绑之前的用例
             cameraProvider.unbindAll();
-
-            // 绑定用例到生命周期
             cameraProvider.bindToLifecycle(
                     this,
                     cameraSelector,
@@ -142,7 +131,6 @@ public class CameraActivity extends AppCompatActivity {
                     imageCapture
             );
 
-            // 设置闪光灯模式，仅在后置摄像头模式下有效
             if (imageCapture != null && !isFrontCamera) {
                 imageCapture.setFlashMode(isFlashOn ? ImageCapture.FLASH_MODE_ON : ImageCapture.FLASH_MODE_OFF);
             }
@@ -160,24 +148,20 @@ public class CameraActivity extends AppCompatActivity {
             return;
         }
 
-        // 创建时间戳文件名
         String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
                 .format(System.currentTimeMillis());
         String fileName = "IMG_" + timestamp + ".jpg";
 
-        // 创建输出选项对象
         ContentValues contentValues = new ContentValues();
         contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
         contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg");
 
-        // 创建输出选项
         ImageCapture.OutputFileOptions outputOptions = new ImageCapture.OutputFileOptions.Builder(
                 getContentResolver(),
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                 contentValues)
                 .build();
 
-        // 设置拍照回调
         imageCapture.takePicture(
                 outputOptions,
                 ContextCompat.getMainExecutor(this),
@@ -189,13 +173,18 @@ public class CameraActivity extends AppCompatActivity {
                             Log.d(TAG, "Photo saved: " + savedUri);
                             showSuccess("照片保存成功");
 
-                            // 获取模式并传递到裁剪界面
                             String mode = getIntent().getStringExtra("mode");
                             Intent intent = new Intent(CameraActivity.this, CropActivity.class);
                             intent.putExtra("sourceUri", savedUri);
                             intent.putExtra("mode", mode);
-                            startActivity(intent);
-                            finish();  // 完成后关闭相机界面
+
+                            // 根据模式决定是否需要返回结果
+                            if ("document".equals(mode)) {
+                                startActivityForResult(intent, DocumentPhotoManager.REQUEST_CODE_CROP);
+                            } else {
+                                startActivity(intent);
+                                finish();
+                            }
                         }
                     }
 
@@ -211,18 +200,43 @@ public class CameraActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+
         if (requestCode == REQUEST_CODE_GALLERY && resultCode == RESULT_OK && data != null) {
             Uri selectedImageUri = data.getData();
             if (selectedImageUri != null) {
                 Log.d(TAG, "Selected image from gallery: " + selectedImageUri);
-
-                // 获取模式并传递到裁剪界面
                 String mode = getIntent().getStringExtra("mode");
                 Intent intent = new Intent(this, CropActivity.class);
                 intent.putExtra("sourceUri", selectedImageUri);
                 intent.putExtra("mode", mode);
+
+                if ("document".equals(mode)) {
+                    startActivityForResult(intent, DocumentPhotoManager.REQUEST_CODE_CROP);
+                } else {
+                    startActivity(intent);
+                    finish();
+                }
+            }
+        }
+        // 处理裁剪返回结果
+        else if (requestCode == DocumentPhotoManager.REQUEST_CODE_CROP && resultCode == RESULT_OK && data != null) {
+            String imagePath = data.getStringExtra("imagePath");
+            String thumbnailPath = data.getStringExtra("thumbnailPath");
+            long timestamp = data.getLongExtra("timestamp", System.currentTimeMillis());
+
+            // 添加新的照片项
+            photoItems.add(new DocumentPhotoManager.PhotoItem(imagePath, thumbnailPath, timestamp));
+
+            boolean isContinue = data.getBooleanExtra(DocumentPhotoManager.EXTRA_IS_CONTINUE, false);
+            if (isContinue) {
+                // 继续拍摄
+                startCamera();
+            } else {
+                // 完成拍摄，进入文档处理界面
+                Intent intent = new Intent(this, DocumentActivity.class);
+                intent.putParcelableArrayListExtra(DocumentPhotoManager.EXTRA_PHOTO_ITEMS, photoItems);
                 startActivity(intent);
-                finish();  // 完成后关闭相机界面
+                finish();
             }
         }
     }
@@ -238,7 +252,6 @@ public class CameraActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // 释放相机资源
         if (imageCapture != null) {
             imageCapture = null;
         }

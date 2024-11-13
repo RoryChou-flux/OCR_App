@@ -84,6 +84,10 @@ dependencies {
     implementation("com.vanniktech:android-image-cropper:4.6.0")
     implementation ("com.github.yalantis:ucrop:2.2.8")
 
+    implementation("com.github.bumptech.glide:glide:4.15.1")
+    annotationProcessor("com.github.bumptech.glide:compiler:4.15.1")
+    implementation ("com.github.chrisbanes:PhotoView:2.3.0")
+
 
 
     // 其他已有的依赖

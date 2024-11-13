@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 渐变背景 -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="45"
+                android:startColor="@color/primary"
+                android:endColor="@color/secondary"
+                android:centerColor="@color/primary_container"/>
+        </shape>
+    </item>
+
+    <!-- 居中的Logo -->
+    <item
+        android:width="120dp"
+        android:height="120dp"
+        android:gravity="center">
+        <bitmap
+            android:src="@drawable/app_logo"
+            android:gravity="fill"/>
+    </item>
+</layer-list>

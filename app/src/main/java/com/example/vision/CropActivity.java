@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.example.vision.utils.ImageProcessorUtils;
 import com.example.vision.utils.ImageProcessorUtils.ProcessedImage;
@@ -70,37 +71,26 @@ public class CropActivity extends AppCompatActivity {
     private void startCrop() {
         UCrop.Options options = new UCrop.Options();
 
-        // 基本样式设置
         options.setStatusBarColor(Color.BLACK);
         options.setToolbarColor(Color.BLACK);
         options.setToolbarWidgetColor(Color.WHITE);
         options.setToolbarTitle("裁剪图片");
-
-        // 裁剪网格设置
         options.setShowCropGrid(true);
         options.setCropGridColor(Color.WHITE);
         options.setCropGridColumnCount(3);
         options.setCropGridRowCount(3);
-
-        // 裁剪框设置
         options.setCropFrameColor(Color.WHITE);
         options.setDimmedLayerColor(Color.parseColor("#99000000"));
-
-        // 手势设置
         options.setCircleDimmedLayer(false);
-        options.setFreeStyleCropEnabled(true);  // 允许自由调整裁剪框
+        options.setFreeStyleCropEnabled(true);
         options.setHideBottomControls(false);
         options.setShowCropFrame(true);
-
-        // 压缩设置
         options.setCompressionQuality(90);
         options.setCompressionFormat(android.graphics.Bitmap.CompressFormat.JPEG);
 
-        // 开始裁剪
         UCrop uCrop = UCrop.of(sourceUri, destinationUri)
                 .withOptions(options);
 
-        // 根据模式设置不同的裁剪比例
         String mode = getIntent().getStringExtra("mode");
         if ("document".equals(mode)) {
             uCrop.withAspectRatio(210, 297);  // A4纸比例
@@ -134,43 +124,60 @@ public class CropActivity extends AppCompatActivity {
 
     private void handleCropResult(Uri croppedUri, String mode) {
         try {
-            // 生成缩略图
             ProcessedImage processedImage = ImageProcessorUtils.processAndSaveThumbnail(this, croppedUri);
 
-            Intent intent;
             if ("latex".equals(mode)) {
-                intent = new Intent(this, LatexActivity.class);
+                // LaTeX 模式保持不变
+                Intent intent = new Intent(this, LatexActivity.class);
                 intent.putExtra("mode", "LATEX");
-            } else if ("document".equals(mode)) {
-                intent = new Intent(this, DocumentActivity.class);
-                intent.putExtra("mode", "DOCUMENT");
-            } else {
-                Log.w(TAG, "未知模式: " + mode);
+                intent.putExtra("imagePath", processedImage.originalPath);
+                intent.putExtra("thumbnailPath", processedImage.thumbnailPath);
+                intent.putExtra("timestamp", System.currentTimeMillis());
+                startActivity(intent);
                 finish();
-                return;
+            } else if ("document".equals(mode)) {
+                // 在文档模式下显示确认对话框
+                showDocumentContinueDialog(processedImage);
             }
-
-            // 传递图片路径和缩略图路径
-            intent.putExtra("imagePath", processedImage.originalPath);
-            intent.putExtra("thumbnailPath", processedImage.thumbnailPath);
-            intent.putExtra("timestamp", System.currentTimeMillis());
-
-            // 启动处理活动
-            startActivity(intent);
-            Toast.makeText(this, "裁剪成功: " + mode + "模式", Toast.LENGTH_SHORT).show();
 
         } catch (Exception e) {
             Log.e(TAG, "处理裁剪图片失败", e);
             Toast.makeText(this, "处理图片失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-        } finally {
             finish();
         }
+    }
+
+    private void showDocumentContinueDialog(ProcessedImage processedImage) {
+        new AlertDialog.Builder(this)
+                .setTitle("继续拍摄？")
+                .setMessage("是否需要继续拍摄下一页？")
+                .setPositiveButton("继续拍摄", (dialog, which) -> {
+                    // 返回到相机界面继续拍摄
+                    Intent resultIntent = new Intent();
+                    resultIntent.putExtra("imagePath", processedImage.originalPath);
+                    resultIntent.putExtra("thumbnailPath", processedImage.thumbnailPath);
+                    resultIntent.putExtra("timestamp", System.currentTimeMillis());
+                    resultIntent.putExtra(DocumentPhotoManager.EXTRA_IS_CONTINUE, true);
+                    setResult(RESULT_OK, resultIntent);
+                    finish();
+                })
+                .setNegativeButton("完成拍摄", (dialog, which) -> {
+                    // 返回结果，表示完成拍摄
+                    Intent resultIntent = new Intent();
+                    resultIntent.putExtra("imagePath", processedImage.originalPath);
+                    resultIntent.putExtra("thumbnailPath", processedImage.thumbnailPath);
+                    resultIntent.putExtra("timestamp", System.currentTimeMillis());
+                    resultIntent.putExtra(DocumentPhotoManager.EXTRA_IS_CONTINUE, false);
+                    setResult(RESULT_OK, resultIntent);
+                    finish();
+                })
+                .setCancelable(false)
+                .show();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // 清理临时文件
         if (isFinishing()) {
             cleanupTempFiles();
         }
