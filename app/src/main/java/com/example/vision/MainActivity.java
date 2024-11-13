@@ -13,18 +13,6 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 public class MainActivity extends AppCompatActivity {
-    private static final int PERMISSION_REQUEST_CODE = 1001;
-    private static final String[] REQUIRED_PERMISSIONS = {
-            Manifest.permission.CAMERA,
-            Manifest.permission.RECORD_AUDIO,
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            Manifest.permission.INTERNET,
-            Manifest.permission.ACCESS_NETWORK_STATE,
-            // Android 13 (API 33)及以上版本的权限
-            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU ?
-                    Manifest.permission.READ_MEDIA_IMAGES : Manifest.permission.READ_EXTERNAL_STORAGE
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,16 +20,42 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         // 先检查权限
-        if (checkPermissions()) {
-            initViews();
+        requestPermissionsIfNeeded();
+    }
+
+    private void requestPermissionsIfNeeded() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED ||
+                    checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{
+                        Manifest.permission.CAMERA,
+                        Manifest.permission.READ_MEDIA_IMAGES
+                }, 1001);
+                return;
+            }
+        } else {
+            if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED ||
+                    checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ||
+                    checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{
+                        Manifest.permission.CAMERA,
+                        Manifest.permission.READ_EXTERNAL_STORAGE,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE
+                }, 1001);
+                return;
+            }
         }
+
+        initViews();
     }
 
     private void initViews() {
         // 历史记录按钮
         ImageButton historyButton = findViewById(R.id.historyButton);
         historyButton.setOnClickListener(v -> {
-            Toast.makeText(this, "历史记录功能开发中", Toast.LENGTH_SHORT).show();
+            // 跳转到历史记录界面
+            Intent intent = new Intent(MainActivity.this, HistoryActivity.class);
+            startActivity(intent);
         });
 
         // 数学公式识别卡片
@@ -61,39 +75,11 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private boolean checkPermissions() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            // Android 13及以上版本
-            for (String permission : REQUIRED_PERMISSIONS) {
-                if (permission == null) continue; // 跳过可能的null权限
-                if (ContextCompat.checkSelfPermission(this, permission)
-                        != PackageManager.PERMISSION_GRANTED) {
-                    ActivityCompat.requestPermissions(this,
-                            REQUIRED_PERMISSIONS, PERMISSION_REQUEST_CODE);
-                    return false;
-                }
-            }
-        } else {
-            // Android 12及以下版本
-            for (String permission : REQUIRED_PERMISSIONS) {
-                if (permission == null) continue;
-                if (!permission.equals(Manifest.permission.READ_MEDIA_IMAGES) &&
-                        ContextCompat.checkSelfPermission(this, permission)
-                                != PackageManager.PERMISSION_GRANTED) {
-                    ActivityCompat.requestPermissions(this,
-                            REQUIRED_PERMISSIONS, PERMISSION_REQUEST_CODE);
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == PERMISSION_REQUEST_CODE) {
+        if (requestCode == 1001) {
             boolean allGranted = true;
             for (int result : grantResults) {
                 if (result != PackageManager.PERMISSION_GRANTED) {

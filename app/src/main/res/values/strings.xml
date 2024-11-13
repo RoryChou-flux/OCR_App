@@ -50,6 +50,10 @@
     <string name="history_cleared">历史记录已清空</string>
     <string name="no_history_records">暂无历史记录</string>
     <string name="capture_or_import_to_see_records">拍照识别或导入图片即可看到记录</string>
+    <string name="title_clear_history">清空历史记录</string>
+    <string name="message_clear_history">确定要清空所有历史记录吗？此操作不可恢复。</string>
+    <string name="button_confirm">确定</string>
+    <string name="button_cancel">取消</string>
 
     <!-- 类型标签 -->
     <string name="type_latex">LaTeX公式</string>

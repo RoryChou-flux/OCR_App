@@ -85,7 +85,11 @@
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/ucrop_provider_paths" />
+
+
         </provider>
+
+        <activity android:name=".HistoryActivity" />
 
     </application>
 

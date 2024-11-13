@@ -7,6 +7,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import com.example.vision.utils.ImageProcessorUtils;
+import com.example.vision.utils.ImageProcessorUtils.ProcessedImage;
 import com.yalantis.ucrop.UCrop;
 import java.io.File;
 
@@ -20,7 +22,6 @@ public class CropActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         handleIntent();
         startCrop();
     }
@@ -44,7 +45,10 @@ public class CropActivity extends AppCompatActivity {
     private void createOutputUri() {
         File outputDir = new File(getCacheDir(), CROP_OUTPUT_DIR);
         if (!outputDir.exists()) {
-            outputDir.mkdirs();
+            boolean created = outputDir.mkdirs();
+            if (!created) {
+                Log.w(TAG, "无法创建输出目录");
+            }
         }
 
         // 清理旧文件
@@ -52,7 +56,10 @@ public class CropActivity extends AppCompatActivity {
         if (files != null) {
             for (File file : files) {
                 if (System.currentTimeMillis() - file.lastModified() > 24 * 60 * 60 * 1000) {
-                    file.delete();
+                    boolean deleted = file.delete();
+                    if (!deleted) {
+                        Log.w(TAG, "无法删除旧文件: " + file.getPath());
+                    }
                 }
             }
         }
@@ -107,46 +114,90 @@ public class CropActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode == RESULT_OK && requestCode == UCrop.REQUEST_CROP) {
+        if (resultCode == RESULT_OK && requestCode == UCrop.REQUEST_CROP && data != null) {
             final Uri resultUri = UCrop.getOutput(data);
             if (resultUri != null) {
                 String mode = getIntent().getStringExtra("mode");
-
-                // 记录日志但暂不跳转
-                if ("latex".equals(mode)) {
-                    Log.d(TAG, "将跳转到LaTeX识别活动: " + resultUri);
-                    // TODO: 后续添加 LatexActivity 跳转
-                } else if ("document".equals(mode)) {
-                    Log.d(TAG, "将跳转到文档处理活动: " + resultUri);
-                    // TODO: 后续添加 DocumentActivity 跳转
-                } else {
-                    Log.w(TAG, "未知模式: " + mode);
-                }
-
-                // 显示成功提示
-                Toast.makeText(this, "裁剪成功: " + mode + "模式", Toast.LENGTH_SHORT).show();
+                handleCropResult(resultUri, mode);
             }
         } else if (resultCode == UCrop.RESULT_ERROR) {
             final Throwable cropError = UCrop.getError(data);
             String errorMessage = cropError != null ? cropError.getMessage() : "未知错误";
             Toast.makeText(this, "裁剪失败: " + errorMessage, Toast.LENGTH_SHORT).show();
             Log.e(TAG, "裁剪失败: " + errorMessage);
+            finish();
         } else {
             Log.w(TAG, "裁剪取消");
+            finish();
         }
-        finish();
+    }
+
+    private void handleCropResult(Uri croppedUri, String mode) {
+        try {
+            // 生成缩略图
+            ProcessedImage processedImage = ImageProcessorUtils.processAndSaveThumbnail(this, croppedUri);
+
+            Intent intent;
+            if ("latex".equals(mode)) {
+                intent = new Intent(this, LatexActivity.class);
+                intent.putExtra("mode", "LATEX");
+            } else if ("document".equals(mode)) {
+                intent = new Intent(this, DocumentActivity.class);
+                intent.putExtra("mode", "DOCUMENT");
+            } else {
+                Log.w(TAG, "未知模式: " + mode);
+                finish();
+                return;
+            }
+
+            // 传递图片路径和缩略图路径
+            intent.putExtra("imagePath", processedImage.originalPath);
+            intent.putExtra("thumbnailPath", processedImage.thumbnailPath);
+            intent.putExtra("timestamp", System.currentTimeMillis());
+
+            // 启动处理活动
+            startActivity(intent);
+            Toast.makeText(this, "裁剪成功: " + mode + "模式", Toast.LENGTH_SHORT).show();
+
+        } catch (Exception e) {
+            Log.e(TAG, "处理裁剪图片失败", e);
+            Toast.makeText(this, "处理图片失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        } finally {
+            finish();
+        }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         // 清理临时文件
-        if (isFinishing() && sourceUri != null) {
+        if (isFinishing()) {
+            cleanupTempFiles();
+        }
+    }
+
+    private void cleanupTempFiles() {
+        // 删除源文件（如果是临时文件）
+        if (sourceUri != null) {
             String scheme = sourceUri.getScheme();
             if (scheme != null && scheme.equals("file")) {
                 String path = sourceUri.getPath();
                 if (path != null) {
-                    new File(path).delete();
+                    boolean deleted = new File(path).delete();
+                    if (!deleted) {
+                        Log.w(TAG, "无法删除源文件: " + path);
+                    }
+                }
+            }
+        }
+
+        // 删除裁剪输出文件（因为已经复制到应用私有目录）
+        if (destinationUri != null) {
+            String path = destinationUri.getPath();
+            if (path != null) {
+                boolean deleted = new File(path).delete();
+                if (!deleted) {
+                    Log.w(TAG, "无法删除裁剪输出文件: " + path);
                 }
             }
         }
