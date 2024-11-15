@@ -7,8 +7,9 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.widget.Toast;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageCapture;
@@ -20,16 +21,12 @@ import androidx.core.content.ContextCompat;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.common.util.concurrent.ListenableFuture;
-
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 
 public class CameraActivity extends AppCompatActivity {
-
     private static final String TAG = "CameraActivity";
-    private static final int REQUEST_CODE_GALLERY = 123;
 
     private PreviewView previewView;
     private ImageCapture imageCapture;
@@ -37,22 +34,57 @@ public class CameraActivity extends AppCompatActivity {
     private MaterialButton flashButton;
     private MaterialButton switchCameraButton;
     private MaterialButton galleryButton;
+    private MaterialButton closeButton;
     private boolean isFlashOn = false;
     private boolean isFrontCamera = false;
 
-    // 添加照片列表管理
-    private ArrayList<DocumentPhotoManager.PhotoItem> photoItems = new ArrayList<>();
+    // 使用新的 ActivityResult API
+    private final ActivityResultLauncher<Intent> galleryLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    Uri selectedImageUri = result.getData().getData();
+                    if (selectedImageUri != null) {
+                        handleGalleryImage(selectedImageUri);
+                    }
+                }
+            }
+    );
+
+    private final ActivityResultLauncher<Intent> cropLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                try {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        String imagePath = result.getData().getStringExtra("imagePath");
+                        boolean isContinue = result.getData().getBooleanExtra(
+                                DocumentPhotoManager.EXTRA_IS_CONTINUE, false);
+
+                        // 返回到现有的DocumentActivity
+                        Intent intent = new Intent(this, DocumentActivity.class);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        intent.putExtra("imagePath", imagePath);
+                        intent.putExtra("timestamp", System.currentTimeMillis());
+                        startActivity(intent);
+
+                        // 如果不继续拍摄，关闭相机
+                        if (!isContinue) {
+                            finish();
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error processing crop result", e);
+                    Toast.makeText(this, "处理裁剪结果时出错", Toast.LENGTH_SHORT).show();
+                }
+            }
+    );
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera);
-
-        String mode = getIntent().getStringExtra("mode");
-        Log.d(TAG, "当前模式: " + mode);
-
         initializeViews();
-        setClickListeners();
+        setupClickListeners();
         startCamera();
     }
 
@@ -62,98 +94,37 @@ public class CameraActivity extends AppCompatActivity {
         flashButton = findViewById(R.id.flash_button);
         switchCameraButton = findViewById(R.id.switch_camera_button);
         galleryButton = findViewById(R.id.gallery_button);
+        closeButton = findViewById(R.id.closeButton);
     }
 
-    private void setClickListeners() {
+    private void setupClickListeners() {
         captureButton.setOnClickListener(v -> takePhoto());
 
-        flashButton.setOnClickListener(v -> {
-            if (isFrontCamera) {
-                Toast.makeText(this, "前置摄像头不支持闪光灯", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            isFlashOn = !isFlashOn;
-            flashButton.setIconResource(isFlashOn ? R.drawable.ic_flash_on : R.drawable.ic_flash_off);
-            if (imageCapture != null) {
-                imageCapture.setFlashMode(isFlashOn ? ImageCapture.FLASH_MODE_ON : ImageCapture.FLASH_MODE_OFF);
-            }
-        });
+        flashButton.setOnClickListener(v -> toggleFlash());
 
         switchCameraButton.setOnClickListener(v -> {
             isFrontCamera = !isFrontCamera;
-            if (isFrontCamera && isFlashOn) {
-                isFlashOn = false;
-                flashButton.setIconResource(R.drawable.ic_flash_off);
-            }
             startCamera();
         });
 
-        galleryButton.setOnClickListener(v -> {
-            Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-            startActivityForResult(intent, REQUEST_CODE_GALLERY);
-        });
+        galleryButton.setOnClickListener(v -> openGallery());
+
+        closeButton.setOnClickListener(v -> finish());
     }
 
-    private void startCamera() {
-        Log.d(TAG, "Starting camera...");
-
-        ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(this);
-
-        cameraProviderFuture.addListener(() -> {
-            try {
-                ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
-                bindCameraUseCases(cameraProvider);
-            } catch (ExecutionException | InterruptedException e) {
-                Log.e(TAG, "Error starting camera: " + e.getMessage());
-                showError("无法启动相机: " + e.getMessage());
-            }
-        }, ContextCompat.getMainExecutor(this));
-    }
-
-    private void bindCameraUseCases(@NonNull ProcessCameraProvider cameraProvider) {
-        Preview preview = new Preview.Builder().build();
-        preview.setSurfaceProvider(previewView.getSurfaceProvider());
-
-        imageCapture = new ImageCapture.Builder()
-                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                .build();
-
-        CameraSelector cameraSelector = isFrontCamera ?
-                CameraSelector.DEFAULT_FRONT_CAMERA :
-                CameraSelector.DEFAULT_BACK_CAMERA;
-
-        try {
-            cameraProvider.unbindAll();
-            cameraProvider.bindToLifecycle(
-                    this,
-                    cameraSelector,
-                    preview,
-                    imageCapture
-            );
-
-            if (imageCapture != null && !isFrontCamera) {
-                imageCapture.setFlashMode(isFlashOn ? ImageCapture.FLASH_MODE_ON : ImageCapture.FLASH_MODE_OFF);
-            }
-
-            Log.d(TAG, "Camera use cases bound successfully");
-        } catch (Exception e) {
-            Log.e(TAG, "Use case binding failed: " + e.getMessage());
-            showError("相机绑定失败: " + e.getMessage());
-        }
+    private void openGallery() {
+        Intent intent = new Intent(Intent.ACTION_PICK);
+        intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
+        galleryLauncher.launch(intent);
     }
 
     private void takePhoto() {
-        if (imageCapture == null) {
-            Log.e(TAG, "ImageCapture is null");
-            return;
-        }
+        if (imageCapture == null) return;
 
-        String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
+        String filename = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
                 .format(System.currentTimeMillis());
-        String fileName = "IMG_" + timestamp + ".jpg";
-
         ContentValues contentValues = new ContentValues();
-        contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
+        contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, filename);
         contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg");
 
         ImageCapture.OutputFileOptions outputOptions = new ImageCapture.OutputFileOptions.Builder(
@@ -170,90 +141,101 @@ public class CameraActivity extends AppCompatActivity {
                     public void onImageSaved(@NonNull ImageCapture.OutputFileResults output) {
                         Uri savedUri = output.getSavedUri();
                         if (savedUri != null) {
-                            Log.d(TAG, "Photo saved: " + savedUri);
-                            showSuccess("照片保存成功");
-
-                            String mode = getIntent().getStringExtra("mode");
-                            Intent intent = new Intent(CameraActivity.this, CropActivity.class);
-                            intent.putExtra("sourceUri", savedUri);
-                            intent.putExtra("mode", mode);
-
-                            // 根据模式决定是否需要返回结果
-                            if ("document".equals(mode)) {
-                                startActivityForResult(intent, DocumentPhotoManager.REQUEST_CODE_CROP);
-                            } else {
-                                startActivity(intent);
-                                finish();
-                            }
+                            handleCapturedImage(savedUri);
                         }
                     }
 
                     @Override
                     public void onError(@NonNull ImageCaptureException exception) {
                         Log.e(TAG, "Photo capture failed: " + exception.getMessage());
-                        showError("拍照失败: " + exception.getMessage());
+                        showToast(getString(R.string.capture_error));
                     }
                 }
         );
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
+    private void handleCapturedImage(Uri imageUri) {
+        try {
+            Log.d(TAG, "Handling captured image: " + imageUri);
+            String mode = getIntent().getStringExtra("mode");
+            Intent intent = new Intent(this, CropActivity.class);
+            intent.putExtra("sourceUri", imageUri);
+            intent.putExtra("mode", mode);
+            cropLauncher.launch(intent);
+        } catch (Exception e) {
+            Log.e(TAG, "Error handling captured image", e);
+            Toast.makeText(this, "处理拍摄图片时出错", Toast.LENGTH_SHORT).show();
+        }
+    }
+    private void handleGalleryImage(Uri imageUri) {
+        String mode = getIntent().getStringExtra("mode");
+        Intent intent = new Intent(this, CropActivity.class);
+        intent.putExtra("sourceUri", imageUri);
+        intent.putExtra("mode", mode);
+        cropLauncher.launch(intent);
+    }
 
-        if (requestCode == REQUEST_CODE_GALLERY && resultCode == RESULT_OK && data != null) {
-            Uri selectedImageUri = data.getData();
-            if (selectedImageUri != null) {
-                Log.d(TAG, "Selected image from gallery: " + selectedImageUri);
-                String mode = getIntent().getStringExtra("mode");
-                Intent intent = new Intent(this, CropActivity.class);
-                intent.putExtra("sourceUri", selectedImageUri);
-                intent.putExtra("mode", mode);
+    private void toggleFlash() {
+        if (isFrontCamera) {
+            showToast(getString(R.string.flash_not_supported));
+            return;
+        }
+        isFlashOn = !isFlashOn;
+        flashButton.setIconResource(isFlashOn ? R.drawable.ic_flash_on : R.drawable.ic_flash_off);
+        updateFlashMode();
+    }
 
-                if ("document".equals(mode)) {
-                    startActivityForResult(intent, DocumentPhotoManager.REQUEST_CODE_CROP);
-                } else {
-                    startActivity(intent);
-                    finish();
-                }
+    private void startCamera() {
+        ListenableFuture<ProcessCameraProvider> cameraProviderFuture =
+                ProcessCameraProvider.getInstance(this);
+
+        cameraProviderFuture.addListener(() -> {
+            try {
+                ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
+                bindCameraUseCases(cameraProvider);
+            } catch (ExecutionException | InterruptedException e) {
+                Log.e(TAG, "Error starting camera: " + e.getMessage());
             }
-        }
-        // 处理裁剪返回结果
-        else if (requestCode == DocumentPhotoManager.REQUEST_CODE_CROP && resultCode == RESULT_OK && data != null) {
-            String imagePath = data.getStringExtra("imagePath");
-            String thumbnailPath = data.getStringExtra("thumbnailPath");
-            long timestamp = data.getLongExtra("timestamp", System.currentTimeMillis());
+        }, ContextCompat.getMainExecutor(this));
+    }
 
-            // 添加新的照片项
-            photoItems.add(new DocumentPhotoManager.PhotoItem(imagePath, thumbnailPath, timestamp));
+    private void bindCameraUseCases(@NonNull ProcessCameraProvider cameraProvider) {
+        Preview preview = new Preview.Builder().build();
+        preview.setSurfaceProvider(previewView.getSurfaceProvider());
 
-            boolean isContinue = data.getBooleanExtra(DocumentPhotoManager.EXTRA_IS_CONTINUE, false);
-            if (isContinue) {
-                // 继续拍摄
-                startCamera();
-            } else {
-                // 完成拍摄，进入文档处理界面
-                Intent intent = new Intent(this, DocumentActivity.class);
-                intent.putParcelableArrayListExtra(DocumentPhotoManager.EXTRA_PHOTO_ITEMS, photoItems);
-                startActivity(intent);
-                finish();
-            }
+        imageCapture = new ImageCapture.Builder()
+                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                .build();
+
+        CameraSelector cameraSelector = new CameraSelector.Builder()
+                .requireLensFacing(isFrontCamera ?
+                        CameraSelector.LENS_FACING_FRONT :
+                        CameraSelector.LENS_FACING_BACK)
+                .build();
+
+        try {
+            cameraProvider.unbindAll();
+            cameraProvider.bindToLifecycle(
+                    this,
+                    cameraSelector,
+                    preview,
+                    imageCapture
+            );
+            updateFlashMode();
+        } catch (Exception e) {
+            Log.e(TAG, "Use case binding failed", e);
         }
     }
 
-    private void showError(String message) {
-        runOnUiThread(() -> Toast.makeText(this, message, Toast.LENGTH_SHORT).show());
-    }
-
-    private void showSuccess(String message) {
-        runOnUiThread(() -> Toast.makeText(this, message, Toast.LENGTH_SHORT).show());
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (imageCapture != null) {
-            imageCapture = null;
+    private void updateFlashMode() {
+        if (imageCapture != null && !isFrontCamera) {
+            imageCapture.setFlashMode(isFlashOn ?
+                    ImageCapture.FLASH_MODE_ON :
+                    ImageCapture.FLASH_MODE_OFF);
         }
+    }
+
+    private void showToast(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 }

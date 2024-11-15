@@ -19,6 +19,7 @@
     <color name="history_card_1">#FF3F7FE4</color>
     <color name="history_card_2">#FF9C27B0</color>
 
+    <color name="blue_500">#2196F3</color>
     <!-- 标签背景色 -->
     <color name="tag_latex">#FF2196F3</color>
     <color name="tag_document">#FF4CAF50</color>

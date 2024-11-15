@@ -9,6 +9,46 @@
         <item name="cardElevation">4dp</item>
     </style>
 
+    <!-- 活动转场动画主题 -->
+    <style name="Theme.Vision.Transitions" parent="Theme.Vision.NoActionBar">
+        <item name="android:windowAnimationStyle">@style/WindowAnimationTransition</item>
+    </style>
+
+    <style name="WindowAnimationTransition">
+        <item name="android:windowEnterAnimation">@anim/slide_in_right</item>
+        <item name="android:windowExitAnimation">@anim/slide_out_left</item>
+    </style>
+
+
+
+    <!-- 全屏主题样式 -->
+    <style name="Theme.Vision.Fullscreen" parent="Theme.Vision.NoActionBar">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowTranslucentNavigation">true</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
+
+    <!-- 图片预览控件样式 -->
+    <style name="PreviewPhotoView">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:background">@android:color/black</item>
+        <item name="android:transitionName">photo_transition</item>
+    </style>
+
+    <!-- 预览界面控制栏样式 -->
+    <style name="PreviewControlBar">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:background">@drawable/gradient_transparent_to_dark</item>
+        <item name="android:paddingTop">16dp</item>
+        <item name="android:paddingBottom">16dp</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+    </style>
+
     <!-- 主要按钮样式 -->
     <style name="PrimaryButton" parent="Widget.MaterialComponents.Button">
         <item name="android:layout_width">wrap_content</item>

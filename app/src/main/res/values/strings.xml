@@ -1,137 +1,110 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
+    <string name="reshoot">重新拍摄</string>
+    <string name="correct_all">文档校正</string>
+    <string name="process_all_success">所有文档校正完成</string>
+    <string name="continue_capture_title">继续拍摄？</string>
+
+    <string name="crop_options">选择操作</string>
+    <string name="document_correction">文档校正</string>
+    <string name="correct_document">校正文档</string>
+    <string name="process_success">文档校正完成</string>
+    <!-- 通用 -->
     <string name="app_name">OCR助手</string>
     <string name="title_toolbar">OCR助手</string>
     <string name="title_app">智能识别助手</string>
-
-    <!-- 功能卡片 -->
-    <string name="latex_title">数学公式识别</string>
-    <string name="latex_desc">快速识别数学公式，自动转换为LaTeX</string>
-    <string name="document_title">文档矫正</string>
-    <string name="document_desc">自动矫正文档倾斜，优化扫描效果</string>
-
-    <!-- 使用提示 -->
-    <string name="tips_title">使用提示</string>
-    <string name="tips_light">• 保持光线充足，避免阴影</string>
-    <string name="tips_align">• 对准内容区域，减少倾斜</string>
-    <string name="tips_support">• 支持手写与印刷体识别</string>
-
-    <!-- 按钮描述 -->
-    <string name="desc_history">历史记录</string>
-    <string name="desc_logo">应用图标</string>
-    <string name="desc_latex_icon">公式识别图标</string>
-    <string name="desc_document_icon">文档矫正图标</string>
-
-    <!-- 版本信息 -->
-    <string name="version_info">Version 1.0.0</string>
-
-    <!-- 图片描述 -->
-    <string name="desc_background">背景图片</string>
-
-    <!-- 拍照界面 -->
-        <string name="desc_flash_button">切换闪光灯</string>
-        <string name="desc_switch_camera">切换前后摄像头</string>
-        <string name="desc_capture_button">拍照</string>
-        <string name="desc_gallery_button">打开相册</string>
-        <string name="desc_camera_preview">相机预览</string>
-        <string name="camera_title">相机</string>
-
-    <!-- 裁切 -->
-    <string name="cancel">取消</string>
-    <string name="done">完成</string>
-
-    <!-- 历史记录相关 -->
-    <string name="history_title">历史记录</string>
-    <string name="empty_history_title">暂无历史记录</string>
-    <string name="empty_history_desc">拍照识别或导入图片即可看到记录</string>
-    <string name="clear_history_confirm">确定要清空所有历史记录吗？</string>
-    <string name="clear_history_confirm_btn">清空</string>
-    <string name="clear_history_cancel_btn">取消</string>
-    <string name="history_cleared">历史记录已清空</string>
-    <string name="no_history_records">暂无历史记录</string>
-    <string name="capture_or_import_to_see_records">拍照识别或导入图片即可看到记录</string>
-    <string name="title_clear_history">清空历史记录</string>
-    <string name="message_clear_history">确定要清空所有历史记录吗？此操作不可恢复。</string>
-    <string name="button_confirm">确定</string>
-    <string name="button_cancel">取消</string>
-
-    <!-- 类型标签 -->
-    <string name="type_latex">LaTeX公式</string>
-    <string name="type_document">文档处理</string>
-
-    <!-- 描述文本 -->
-    <string name="desc_history_thumbnail">历史记录缩略图</string>
+    <string name="close">关闭</string>
     <string name="desc_back">返回</string>
-    <string name="desc_clear">清空历史</string>
-    <string name="desc_empty_icon">空状态图标</string>
-
-    <!-- 时间格式 -->
-    <string name="time_today">今天 %s</string>
-    <string name="time_yesterday">昨天 %s</string>
-    <string name="time_date">%s</string>
-
-    <string name="document_name">文档扫描</string>
-
-    <!-- 主界面 -->
-    <string name="main_title">扫描选项</string>
-    <string name="latex_scan">数学公式</string>
-    <string name="document_scan">文档扫描</string>
-    <string name="history">历史记录</string>
-    <string name="press_again_exit">再按一次退出应用</string>
+    <string name="desc_background">背景</string>
+    <string name="cancel">取消</string>
+    <string name="confirm">确认</string>
+    <string name="share">分享</string>
+    <string name="delete">删除</string>
 
     <!-- 相机界面 -->
-    <string name="camera_error">相机启动失败</string>
-    <string name="photo_save_success">照片保存成功</string>
-    <string name="photo_save_failed">照片保存失败</string>
+    <string name="desc_flash_button">闪光灯开关</string>
+    <string name="camera_title">拍照</string>
+    <string name="desc_camera_preview">相机预览</string>
+    <string name="desc_switch_camera">切换摄像头</string>
+    <string name="desc_capture_button">拍照</string>
+    <string name="desc_gallery_button">从相册选择</string>
     <string name="flash_not_supported">前置摄像头不支持闪光灯</string>
+    <string name="camera_start_error">无法启动相机</string>
+    <string name="camera_bind_error">相机绑定失败</string>
+    <string name="camera_not_ready">相机未就绪</string>
+    <string name="save_error">保存失败</string>
+    <string name="capture_error">拍摄失败</string>
+
+    <!-- 文档处理 -->
+    <string name="document_title">文档扫描</string>
+    <string name="document_desc">自动矫正文档</string>
+    <string name="desc_document_icon">文档扫描</string>
+    <string name="process_failed">处理失败</string>
+    <string name="processing">正在处理图片\u2026</string>
+    <string name="document_processing">正在优化文档\u2026</string>
+    <string name="scan_complete">扫描完成</string>
+    <string name="optimization_complete">优化完成</string>
 
     <!-- 裁剪界面 -->
     <string name="crop_title">裁剪图片</string>
+    <string name="crop_cancel">取消</string>
+    <string name="crop_done">完成</string>
+    <string name="crop_image">裁剪图片</string>
     <string name="crop_failed">裁剪失败</string>
+    <string name="unknown_error">未知错误</string>
+    <string name="image_not_found">未找到图片</string>
+    <string name="crop_prep_failed">准备裁剪失败</string>
+    <string name="invalid_crop_path">无效的裁剪路径</string>
     <string name="continue_capture">继续拍摄</string>
     <string name="finish_capture">完成拍摄</string>
-    <string name="continue_prompt">是否需要继续拍摄下一页？</string>
+    <string name="continue_capture_message">是否需要继续拍摄下一页？</string>
+    <string name="continue_capture_positive">继续拍摄</string>
 
-    <!-- 文档处理界面 -->
-    <string name="photo_count">%d 页</string>
+    <!-- 导出功能 -->
     <string name="export_pdf">导出PDF</string>
     <string name="export_png">导出PNG</string>
-    <string name="add_photo">添加照片</string>
-    <string name="delete_photo">删除照片</string>
-    <string name="delete_confirm">确定要删除这张照片吗？</string>
-    <string name="delete">删除</string>
-    <string name="confirm">确定</string>
-
-    <!-- 导出相关 -->
-    <string name="exporting">正在导出…</string>
+    <string name="export_pdf_desc">将文档导出为PDF文件</string>
+    <string name="export_png_desc">将文档导出为PNG图片</string>
+    <string name="exporting">正在导出\u2026</string>
     <string name="export_success">导出成功</string>
-    <string name="export_failed">导出失败：%s</string>
-    <string name="pdf_saved">PDF文件已保存</string>
-    <string name="png_saved">PNG文件已保存</string>
-    <string name="share">分享</string>
-    <string name="no_photos">请先添加照片</string>
+    <string name="export_failed">导出失败</string>
+    <string name="export_success_message">%s文件已保存</string>
+    <string name="share_file">分享文件</string>
 
-    <!-- 权限相关 -->
-    <string name="permission_required">需要相关权限才能使用此功能</string>
-    <string name="permission_granted">已获得所需权限</string>
-
-    <!-- 错误提示 -->
-    <string name="error_unknown">未知错误</string>
-    <string name="error_no_image">未找到图片</string>
-    <string name="error_process_failed">处理失败</string>
-
-    <string name="photo_count_format">%d 页</string>
-    <string name="export_pdf_desc">导出为PDF文件</string>
-    <string name="export_png_desc">导出为PNG图片</string>
-    <string name="add_photo_desc">添加更多照片</string>
-
-    <!-- 照片描述相关 -->
+    <!-- 照片处理 -->
+    <string name="add_photo_desc">添加新照片</string>
     <string name="desc_photo">照片预览</string>
     <string name="desc_delete">删除照片</string>
+    <string name="photo_count_format">已拍摄 %d 页</string>
+    <string name="no_photos">没有可导出的照片</string>
     <string name="delete_confirm_title">删除确认</string>
     <string name="delete_confirm_message">确定要删除这张照片吗？</string>
-    <string name="share_file">分享文件</string>
-    <string name="export_success_message">%s文件已成功导出</string>
-    <string name="close">关闭</string>
+    <string name="image_load_failed_file_not_exists">图片加载失败：文件不存在</string>
+    <string name="page_number_format">第 %d 页</string>
+    <string name="page_indicator">%1$d / %2$d</string>
 
+    <!-- LaTeX相关 -->
+    <string name="latex_title">数学公式识别</string>
+    <string name="latex_desc">快速识别数学公式</string>
+    <string name="desc_latex_icon">LaTeX公式识别</string>
+
+    <!-- 历史记录 -->
+    <string name="history_title">历史记录</string>
+    <string name="desc_history">历史记录</string>
+    <string name="desc_history_thumbnail">历史记录缩略图</string>
+    <string name="desc_clear">清空记录</string>
+    <string name="desc_empty_icon">空记录图标</string>
+    <string name="no_history_records">暂无历史记录</string>
+    <string name="capture_or_import_to_see_records">拍照或导入图片即可看到记录</string>
+    <string name="title_clear_history">清空历史记录</string>
+    <string name="message_clear_history">确定要清空所有历史记录吗？此操作不可恢复。</string>
+
+    <!-- 其他UI元素 -->
+    <string name="desc_logo">应用图标</string>
+    <string name="tips_title">使用提示</string>
+    <string name="tips_light">保持光线充足，避免阴影</string>
+    <string name="tips_align">对准内容区域，减少倾斜</string>
+    <string name="tips_support">支持手写与印刷体识别</string>
+    <string name="version_info">Version 1.0.0</string>
 </resources>

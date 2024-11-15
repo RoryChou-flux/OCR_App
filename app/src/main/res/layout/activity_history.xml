@@ -56,14 +56,14 @@
 
                 <!-- 标题 -->
                 <TextView
-                    android:layout_width="0dp"
+                    android:id="@+id/typeText"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:text="@string/history_title"
-                    android:textColor="@color/text_primary"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="2dp"
+                    android:textColor="@android:color/white"
+                    android:textSize="12sp"
+                    android:background="@drawable/pill_background"/>
 
                 <!-- 清空按钮 -->
                 <com.google.android.material.button.MaterialButton

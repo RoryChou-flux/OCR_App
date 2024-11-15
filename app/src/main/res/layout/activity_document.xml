@@ -19,44 +19,86 @@
             android:layout_height="match_parent"
             android:background="@drawable/card_background">
 
-            <!-- 顶部栏 -->
             <LinearLayout
                 android:id="@+id/topBar"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:padding="16dp"
-                android:gravity="center_vertical"
+                android:paddingHorizontal="16dp"
+                android:gravity="top"
                 app:layout_constraintTop_toTopOf="parent">
 
-                <!-- 返回按钮 -->
-                <ImageButton
-                    android:id="@+id/backButton"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="@string/desc_back"
-                    android:padding="12dp"
-                    android:src="@drawable/ic_back"
-                    app:tint="@color/text_primary" />
-
-                <TextView
+                <!-- 左侧部分：返回按钮、标题和计数 -->
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="@string/document_title"
-                    android:textColor="@color/text_primary"
-                    android:textSize="20sp"
-                    android:textStyle="bold"
-                    android:layout_marginStart="8dp"/>
+                    android:orientation="vertical">
 
-                <TextView
-                    android:id="@+id/photoCountText"
+                    <!-- 顶部导航栏 -->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingTop="4dp">
+
+                        <ImageButton
+                            android:id="@+id/backButton"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:background="@drawable/circle_button_background"
+                            android:contentDescription="@string/desc_back"
+                            android:padding="8dp"
+                            android:src="@drawable/ic_back"
+                            app:tint="@color/text_primary" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:text="@string/document_title"
+                            android:textColor="@color/text_primary"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- 照片计数文本 -->
+                    <TextView
+                        android:id="@+id/photoCountText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="52dp"
+                        android:text="@string/photo_count_format"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="16sp"/>
+
+                </LinearLayout>
+
+                <!-- 右侧按钮部分保持不变 -->
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/photo_count_format"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="16sp"/>
+                    android:orientation="vertical"
+                    android:layout_marginStart="16dp">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/reshootButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/reshoot"
+                        app:icon="@drawable/ic_camera_capture" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/correctAllButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/correct_all"
+                        app:icon="@drawable/ic_document"/>
+
+                </LinearLayout>
+
             </LinearLayout>
 
             <!-- 照片网格区域 -->
@@ -68,7 +110,7 @@
                 android:padding="16dp"
                 android:layout_marginBottom="80dp"
                 app:layout_constraintTop_toBottomOf="@id/topBar"
-                app:layout_constraintBottom_toBottomOf="parent"/>
+                app:layout_constraintBottom_toTopOf="@id/bottomBar" />
 
             <!-- 底部功能按钮区域 -->
             <com.google.android.material.card.MaterialCardView
@@ -135,6 +177,17 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintBottom_toBottomOf="@id/bottomBar"
                 app:tint="@android:color/white" />
+
+            <!-- 添加处理进度条 -->
+            <ProgressBar
+                android:id="@+id/processingProgress"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"/>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.cardview.widget.CardView>

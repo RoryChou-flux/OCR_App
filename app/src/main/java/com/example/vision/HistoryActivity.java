@@ -110,10 +110,10 @@ public class HistoryActivity extends AppCompatActivity {
 
     private void showClearConfirmDialog() {
         new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.title_clear_history)           // 更新为正确的资源ID
-                .setMessage(R.string.message_clear_history)       // 更新为正确的资源ID
-                .setNegativeButton(R.string.button_cancel, null)  // 更新为正确的资源ID
-                .setPositiveButton(R.string.button_confirm,       // 更新为正确的资源ID
+                .setTitle(R.string.title_clear_history)
+                .setMessage(R.string.message_clear_history)
+                .setNegativeButton(R.string.cancel, null)  // 使用通用的 cancel 字符串
+                .setPositiveButton(R.string.confirm,       // 使用通用的 confirm 字符串
                         (dialog, which) -> clearHistory())
                 .show();
     }

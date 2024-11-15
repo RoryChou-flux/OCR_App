@@ -28,6 +28,7 @@
         android:required="true" />
 
     <application
+        android:name=".VisionApplication"
         android:allowBackup="true"
         android:icon="@drawable/app_logo"
         android:roundIcon="@drawable/app_logo"
@@ -63,6 +64,12 @@
             android:screenOrientation="unspecified"
             android:theme="@style/Theme.Vision.NoActionBar" />
 
+        <activity
+            android:name=".PhotoPreviewActivity"
+            android:configChanges="orientation|screenSize"
+            android:screenOrientation="unspecified"
+            android:theme="@style/Theme.Vision.Fullscreen" />
+
         <!-- 裁剪活动 -->
         <activity
             android:name=".CropActivity"
@@ -75,7 +82,8 @@
             android:name=".DocumentActivity"
             android:configChanges="orientation|screenSize"
             android:screenOrientation="unspecified"
-            android:theme="@style/Theme.Vision.NoActionBar" />
+            android:theme="@style/Theme.Vision.NoActionBar"
+            android:launchMode="singleTop" />
 
         <!-- LaTeX处理活动 -->
         <activity
@@ -100,12 +108,12 @@
         <!-- FileProvider配置 -->
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.fileprovider"
+            android:authorities="${applicationId}.provider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths" />
+                android:resource="@xml/provider_paths" />
         </provider>
 
 

@@ -8,6 +8,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
+        multiDexEnabled = true
         applicationId = "com.example.vision"
         minSdk = 24
         targetSdk = 34
@@ -51,6 +52,7 @@ android {
 
 dependencies {
 
+    implementation(project(":opencv")) // 根据你导入的 OpenCV 模块的实际名称
     // 已有的 CameraX 相关依赖
     implementation("androidx.camera:camera-core:1.3.4")
     implementation("androidx.camera:camera-camera2:1.3.4")

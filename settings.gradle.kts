@@ -33,3 +33,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Vision"
 include(":app")
+include(":opencv")

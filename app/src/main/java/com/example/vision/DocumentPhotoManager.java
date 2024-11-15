@@ -1,16 +1,20 @@
 package com.example.vision;
 
-import android.content.Context;
-import android.net.Uri;
 import android.os.Parcel;
 import android.os.Parcelable;
+import java.io.File;
 import java.util.ArrayList;
 
 public class DocumentPhotoManager {
+    public static final String EXTRA_PHOTO_ITEMS = "photo_items";
+    public static final String EXTRA_IS_CONTINUE = "is_continue";
+    public static final int REQUEST_CODE_CROP = 1001;
+    public static final int REQUEST_CODE_DOCUMENT = 1002;
+
     public static class PhotoItem implements Parcelable {
-        private String originalPath;
-        private String thumbnailPath;
-        private long timestamp;
+        private final String originalPath;
+        private final String thumbnailPath;
+        private final long timestamp;
 
         public PhotoItem(String originalPath, String thumbnailPath, long timestamp) {
             this.originalPath = originalPath;
@@ -28,7 +32,7 @@ public class DocumentPhotoManager {
         public void writeToParcel(Parcel dest, int flags) {
             dest.writeString(originalPath);
             dest.writeString(thumbnailPath);
-            dest.writeString(originalPath);
+            dest.writeLong(timestamp);
         }
 
         @Override
@@ -48,14 +52,17 @@ public class DocumentPhotoManager {
             }
         };
 
-        // Getters
         public String getOriginalPath() { return originalPath; }
         public String getThumbnailPath() { return thumbnailPath; }
         public long getTimestamp() { return timestamp; }
-    }
 
-    public static final String EXTRA_PHOTO_ITEMS = "photo_items";
-    public static final String EXTRA_IS_CONTINUE = "is_continue";
-    public static final int REQUEST_CODE_CROP = 1001;
-    public static final int REQUEST_CODE_DOCUMENT = 1002;
+        public boolean exists() {
+            return new File(originalPath).exists() && new File(thumbnailPath).exists();
+        }
+
+        public void delete() {
+            new File(originalPath).delete();
+            new File(thumbnailPath).delete();
+        }
+    }
 }

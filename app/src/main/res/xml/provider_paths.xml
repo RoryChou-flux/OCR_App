@@ -1,9 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
+    <!-- 应用内部存储路径 -->
+    <files-path
+        name="internal_files"
+        path="." />
+    <cache-path
+        name="internal_cache"
+        path="." />
+
+    <!-- UCrop相关路径 -->
     <cache-path
         name="ucrop_cache"
-        path="." />
+        path="uCrop/" />
     <files-path
         name="ucrop_files"
+        path="Pictures/" />
+
+    <!-- 文档处理相关路径 -->
+    <files-path
+        name="documents"
+        path="documents/" />
+    <files-path
+        name="thumbnails"
+        path="thumbnails/" />
+
+    <!-- 外部存储路径 -->
+    <external-path
+        name="external_files"
+        path="Documents/Vision/" />
+    <external-path
+        name="images"
+        path="Pictures/Vision/" />
+    <external-path
+        name="downloads"
+        path="Download/Vision/" />
+
+    <!-- 外部应用专属存储 -->
+    <external-files-path
+        name="external_files_path"
+        path="." />
+    <external-cache-path
+        name="external_cache"
         path="." />
 </paths>
