@@ -99,7 +99,6 @@
             android:layout_height="48dp"
             android:layout_gravity="center"
             android:background="@drawable/circle_delete_button"
-            android:src="@drawable/ic_delete"
             android:contentDescription="@string/delete"
             app:tint="@android:color/white"/>
 

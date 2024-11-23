@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="@color/ripple_color">
+    <item>
+        <layer-list>
+
+            <!-- 垃圾桶图标 -->
+            <item
+                android:drawable="@drawable/ic_delete"
+                android:gravity="center"
+                android:width="24dp"
+                android:height="24dp"
+                android:color="@color/delete_icon_tint"/>
+        </layer-list>
+    </item>
+</ripple>

@@ -153,13 +153,8 @@ public class HistoryActivity extends AppCompatActivity implements HistoryAdapter
 
     @Override
     public void onDeleteClick(HistoryAdapter.HistoryItem item) {
-        new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.delete_confirm_title)
-                .setMessage(R.string.delete_confirm_message)
-                .setPositiveButton(R.string.delete, (dialog, which) ->
-                        deleteHistoryItems(Collections.singletonList(item)))
-                .setNegativeButton(R.string.cancel, null)
-                .show();
+        // 直接删除，不再弹窗确认
+        deleteHistoryItems(Collections.singletonList(item));
     }
 
     @Override
