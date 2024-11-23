@@ -5,14 +5,15 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
-import android.os.Environment;
 import android.util.Log;
 import androidx.core.content.FileProvider;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Locale;
 
@@ -49,10 +50,7 @@ public class DocumentExporter {
                 }
             }
 
-            // 确保输出目录存在
             outputDir.mkdirs();
-
-            // 写入PDF文件
             try (FileOutputStream out = new FileOutputStream(outputFile)) {
                 document.writeTo(out);
             }
@@ -72,41 +70,57 @@ public class DocumentExporter {
         File outputDir = getOutputDirectory(context, "PNG");
         String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss",
                 Locale.getDefault()).format(new Date());
+        File exportDir = new File(outputDir, "DOC_" + timestamp);
 
-        if (items.size() == 1) {
-            File outputFile = new File(outputDir, "DOC_" + timestamp + ".png");
-            copyFile(new File(items.get(0).getOriginalPath()), outputFile);
-            return outputFile.getAbsolutePath();
-        } else {
-            File subDir = new File(outputDir, "DOC_" + timestamp);
-            if (!subDir.exists() && !subDir.mkdirs()) {
-                throw new IOException("Cannot create output directory");
-            }
-
-            for (int i = 0; i < items.size(); i++) {
-                File outputFile = new File(subDir,
-                        String.format(Locale.getDefault(), "page_%03d.png", i + 1));
-                copyFile(new File(items.get(i).getOriginalPath()), outputFile);
-            }
-
-            return subDir.getAbsolutePath();
+        // 确保导出目录存在并可写
+        if (!exportDir.exists() && !exportDir.mkdirs()) {
+            throw new IOException("Cannot create output directory: " + exportDir.getPath());
         }
+
+        int successCount = 0;
+        ArrayList<File> exportedFiles = new ArrayList<>();
+
+        // 导出所有选中的图片
+        for (int i = 0; i < items.size(); i++) {
+            try {
+                DocumentPhotoManager.PhotoItem item = items.get(i);
+                File sourceFile = new File(item.getOriginalPath());
+                String fileName = String.format(Locale.getDefault(), "page_%03d.png", i + 1);
+                File outputFile = new File(exportDir, fileName);
+
+                // 验证源文件
+                if (!sourceFile.exists() || !sourceFile.canRead()) {
+                    Log.e(TAG, "Source file not accessible: " + sourceFile.getPath());
+                    continue;
+                }
+
+                // 复制文件
+                copyFile(sourceFile, outputFile);
+                exportedFiles.add(outputFile);
+                successCount++;
+
+                // 确保文件被正确写入并可读
+                if (!outputFile.exists() || !outputFile.canRead()) {
+                    Log.e(TAG, "Failed to verify exported file: " + outputFile.getPath());
+                    continue;
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to export file at index " + i, e);
+            }
+        }
+
+        if (successCount == 0) {
+            throw new IOException("No files were successfully exported");
+        }
+
+        // 返回的结果包含目录路径和成功导出的文件数
+        return String.format("%s:%d", exportDir.getAbsolutePath(), successCount);
     }
 
-    public static Uri getContentUri(Context context, File file) {
-        try {
-            return FileProvider.getUriForFile(context,
-                    context.getPackageName() + ".provider",
-                    file);
-        } catch (IllegalArgumentException e) {
-            Log.e(TAG, "Failed to get content URI", e);
-            return null;
-        }
-    }
 
     private static File getOutputDirectory(Context context, String type) throws IOException {
-        File baseDir = new File(Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_DOCUMENTS), APP_FOLDER_NAME);
+        // 使用应用私有目录而不是公共目录
+        File baseDir = new File(context.getExternalFilesDir(null), APP_FOLDER_NAME);
         File outputDir = new File(baseDir, type);
 
         if (!outputDir.exists() && !outputDir.mkdirs()) {
@@ -117,24 +131,15 @@ public class DocumentExporter {
     }
 
     private static void copyFile(File source, File dest) throws IOException {
-        if (!source.exists()) {
-            throw new IOException("Source file does not exist: " + source.getPath());
-        }
+        try (FileInputStream inStream = new FileInputStream(source);
+             FileOutputStream outStream = new FileOutputStream(dest)) {
 
-        java.nio.channels.FileChannel sourceChannel = null;
-        java.nio.channels.FileChannel destChannel = null;
-
-        try {
-            sourceChannel = new java.io.FileInputStream(source).getChannel();
-            destChannel = new java.io.FileOutputStream(dest).getChannel();
-            destChannel.transferFrom(sourceChannel, 0, sourceChannel.size());
-        } finally {
-            if (sourceChannel != null) {
-                sourceChannel.close();
+            byte[] buffer = new byte[8192];
+            int length;
+            while ((length = inStream.read(buffer)) > 0) {
+                outStream.write(buffer, 0, length);
             }
-            if (destChannel != null) {
-                destChannel.close();
-            }
+            outStream.flush();
         }
     }
 

@@ -1,15 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- 新增选择模式相关的字符串 -->
+    <string name="load_history_failed">加载历史记录失败</string>
+    <string name="clear_history_success">历史记录已清空</string>
+    <string name="select_photos">选择</string>
+    <string name="delete_selected">删除已选择(%d)</string>
+    <string name="delete_success">已删除%d项</string>
+    <string name="delete_multiple_confirm_message">确定要删除选中的%d项记录吗？</string>
+    <string name="cancel_selection">取消选择</string>
+    <string name="delete_partial_success">成功删除 %d 项，部分文件删除失败</string>
+    select_all
 
+    <string name="page_indicator_single">第 %1$d 页</string>
+
+    <string name="image_load_failed">图片加载失败</string>
+    <string name="select_all">全选</string>
+    <string name="selected_count">已选择 %d 项</string>
+    <string name="confirm_selection">确认选择</string>
+    <string name="please_select_photos">请选择要处理的照片</string>
+    <string name="processing_selected">正在处理选中的照片...</string>
+    <string name="exporting_selected">正在导出选中的照片...</string>
+    <string name="share_multiple_files">分享多个文件</string>
+    <string name="export_multiple_success">已成功导出 %d 个文件</string>
+    <string name="select_mode_pdf">选择要导出为PDF的照片</string>
+    <string name="select_mode_png">选择要导出为PNG的照片</string>
+    <string name="select_mode_correct">选择要校正的照片</string>
+    <string name="processing_complete">处理完成</string>
+
+
+    <!-- 文档扫描相关 -->
     <string name="reshoot">重新拍摄</string>
     <string name="correct_all">文档校正</string>
     <string name="process_all_success">所有文档校正完成</string>
     <string name="continue_capture_title">继续拍摄？</string>
-
     <string name="crop_options">选择操作</string>
     <string name="document_correction">文档校正</string>
     <string name="correct_document">校正文档</string>
     <string name="process_success">文档校正完成</string>
+
     <!-- 通用 -->
     <string name="app_name">OCR助手</string>
     <string name="title_toolbar">OCR助手</string>

@@ -31,6 +31,16 @@
             android:textColor="@android:color/white"
             android:textSize="14sp"/>
 
+        <CheckBox
+            android:id="@+id/selectionCheckBox"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_alignParentEnd="true"
+            android:layout_margin="8dp"
+            android:visibility="gone"
+            android:button="@drawable/checkbox_selector"
+            android:background="@null"/>
+
         <ImageView
             android:id="@+id/deleteButton"
             android:layout_width="36dp"

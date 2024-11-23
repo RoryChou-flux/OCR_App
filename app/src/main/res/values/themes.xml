@@ -64,7 +64,8 @@
     </style>
 
     <!-- FullScreen theme for camera -->
-    <style name="Theme.Vision.FullScreen" parent="Theme.Vision.NoActionBar">
+    <!-- 将 Theme.Vision.FullScreen 改为 Theme.Vision.Fullscreen -->
+    <style name="Theme.Vision.Fullscreen" parent="Theme.Vision.NoActionBar">
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowContentOverlay">@null</item>
         <item name="android:windowTranslucentStatus">true</item>

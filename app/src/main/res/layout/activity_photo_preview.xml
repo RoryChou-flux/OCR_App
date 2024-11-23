@@ -23,17 +23,17 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/closeButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:text="退出全屏"
-            android:textColor="@android:color/white"
-            app:backgroundTint="@color/blue_500"
             style="@style/Widget.MaterialComponents.Button"
-            app:cornerRadius="8dp"
+            android:layout_width="130dp"
+            android:layout_height="60dp"
+            android:layout_marginStart="16dp"
+            android:minHeight="40dp"
             android:paddingStart="16dp"
             android:paddingEnd="16dp"
-            android:minHeight="40dp"
+            android:text="右滑以退出"
+            android:textColor="@android:color/white"
+            app:backgroundTint="@color/black"
+            app:cornerRadius="8dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 

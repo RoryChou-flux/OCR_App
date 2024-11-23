@@ -2,24 +2,27 @@ package com.example.vision;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.DataSource;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.RequestOptions;
+import com.bumptech.glide.request.target.Target;
 import com.github.chrisbanes.photoview.PhotoView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.channels.FileChannel;
 
 public class PhotoPreviewActivity extends AppCompatActivity {
     private static final String TAG = "PhotoPreviewActivity";
@@ -29,18 +32,29 @@ public class PhotoPreviewActivity extends AppCompatActivity {
     private TextView pageIndicator;
     private boolean areControlsVisible = true;
     private String currentPhotoPath;
+    private String originalPhotoPath;
+    private int currentPosition; // 当前图片的位置
+    private int totalItems; // 图片总数
     private PhotoView photoView;
     private AlertDialog progressDialog;
     private volatile boolean isProcessing = false;
-
-    public PhotoPreviewActivity() {
-        currentPhotoPath = null;  // 初始化字段
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_photo_preview);
+
+        // 获取 Intent 中的参数
+        currentPhotoPath = getIntent().getStringExtra("photo_path");
+        originalPhotoPath = getIntent().getStringExtra("original_path");
+        currentPosition = getIntent().getIntExtra("position", -1);
+        totalItems = getIntent().getIntExtra("total", 0);
+
+        if (currentPhotoPath == null || originalPhotoPath == null || currentPosition == -1) {
+            Log.e(TAG, "Invalid parameters");
+            finish();
+            return;
+        }
 
         setupWindowFlags();
         initializeViews();
@@ -49,19 +63,16 @@ public class PhotoPreviewActivity extends AppCompatActivity {
         loadImage();
     }
 
-
     private void setupWindowFlags() {
-        // 设置全屏显示
         getWindow().setFlags(
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
         );
 
-        // 设置系统UI显示模式
-        int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
-                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
-                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
-                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+        int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
 
         getWindow().getDecorView().setSystemUiVisibility(flags);
         getWindow().setStatusBarColor(Color.TRANSPARENT);
@@ -74,24 +85,30 @@ public class PhotoPreviewActivity extends AppCompatActivity {
         bottomBar = findViewById(R.id.bottomBar);
         pageIndicator = findViewById(R.id.pageIndicator);
 
-        currentPhotoPath = getIntent().getStringExtra("photo_path");
-        int position = getIntent().getIntExtra("position", 0);
-        int total = getIntent().getIntExtra("total", 0);
-
-        if (total > 0) {
+        // 显示页码，索引从0开始，所以需要加1
+        if (totalItems > 0) {
             pageIndicator.setText(String.format(getString(R.string.page_indicator),
-                    position, total));
+                    currentPosition + 1, totalItems));
+        } else {
+            pageIndicator.setText(String.format(getString(R.string.page_indicator_single),
+                    currentPosition + 1));
         }
-
-        findViewById(R.id.closeButton).setOnClickListener(v -> {
-            finish();
-            // 添加退出动画
-            overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right);
-        });
 
         findViewById(R.id.correctButton).setOnClickListener(v -> {
             if (!isProcessing) {
                 processDocument();
+            }
+        });
+    }
+
+    private void setupPhotoView() {
+        photoView.setMaximumScale(5.0f);
+        photoView.setMediumScale(2.5f);
+        photoView.setMinimumScale(1.0f);
+        photoView.setOnViewTapListener((view, x, y) -> toggleControls());
+        photoView.setOnScaleChangeListener((scaleFactor, focusX, focusY) -> {
+            if (!areControlsVisible) {
+                showControls();
             }
         });
     }
@@ -103,150 +120,111 @@ public class PhotoPreviewActivity extends AppCompatActivity {
                 .create();
     }
 
-    private void setupPhotoView() {
-        // 配置PhotoView
-        photoView.setMaximumScale(5.0f);
-        photoView.setMediumScale(2.5f);
-        photoView.setMinimumScale(1.0f);
-
-        // 设置点击事件
-        photoView.setOnViewTapListener((view, x, y) -> toggleControls());
-
-        // 设置缩放事件
-        photoView.setOnScaleChangeListener((scaleFactor, focusX, focusY) -> {
-            if (!areControlsVisible) {
-                showControls();
+    private void showProcessingDialog() {
+        runOnUiThread(() -> {
+            if (!isFinishing() && progressDialog != null) {
+                progressDialog.show();
             }
         });
     }
 
+    private void hideProcessingDialog() {
+        runOnUiThread(() -> {
+            if (progressDialog != null && progressDialog.isShowing()) {
+                progressDialog.dismiss();
+            }
+        });
+    }
+
+    private void processDocument() {
+        if (isProcessing || currentPhotoPath == null) return;
+
+        isProcessing = true;
+        showProcessingDialog();
+
+        new Thread(() -> {
+            try {
+                DocumentProcessor.DocumentResult result =
+                        DocumentProcessor.processDocument(this, currentPhotoPath);
+
+                File processedFile = new File(result.processedPath);
+                if (!processedFile.exists() || !processedFile.canRead()) {
+                    throw new IOException("Processed file not accessible: " + result.processedPath);
+                }
+
+                // 更新 currentPhotoPath
+                currentPhotoPath = result.processedPath;
+
+                runOnUiThread(() -> {
+                    try {
+                        // 重新加载图片
+                        loadImage();
+
+                        // 返回处理结果
+                        Intent resultIntent = new Intent();
+                        resultIntent.putExtra("processed_path", currentPhotoPath);
+                        resultIntent.putExtra("thumbnail_path", result.thumbnailPath);
+                        resultIntent.putExtra("original_path", originalPhotoPath); // 返回原始路径
+                        setResult(RESULT_OK, resultIntent);
+
+                        Toast.makeText(this, R.string.process_success, Toast.LENGTH_SHORT).show();
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error updating UI after processing", e);
+                        Toast.makeText(this, "更新界面失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    } finally {
+                        hideProcessingDialog();
+                    }
+                });
+            } catch (Exception e) {
+                Log.e(TAG, "Error processing document", e);
+                runOnUiThread(() -> {
+                    Toast.makeText(this, getString(R.string.process_failed) + ": " + e.getMessage(),
+                            Toast.LENGTH_SHORT).show();
+                    hideProcessingDialog();
+                });
+            } finally {
+                isProcessing = false;
+            }
+        }).start();
+    }
+
     private void loadImage() {
         try {
-            String path = getIntent().getStringExtra("photo_path");
-            if (path == null) {
+            if (currentPhotoPath == null) {
                 throw new IOException("No image path provided");
             }
 
-            File imageFile = new File(path);
-            if (!imageFile.exists() || !imageFile.canRead()) {
-                throw new IOException("Cannot access image file: " + path);
-            }
+            Glide.with(this)
+                    .load(new File(currentPhotoPath))
+                    .apply(new RequestOptions()
+                            .diskCacheStrategy(DiskCacheStrategy.NONE)
+                            .skipMemoryCache(true))
+                    .listener(new RequestListener<Drawable>() {
+                        @Override
+                        public boolean onLoadFailed(@Nullable GlideException e, Object model,
+                                                    Target<Drawable> target, boolean isFirstResource) {
+                            Log.e(TAG, "Image load failed", e);
+                            Toast.makeText(PhotoPreviewActivity.this,
+                                    "无法加载图片", Toast.LENGTH_SHORT).show();
+                            finish();
+                            return false;
+                        }
 
-            RequestOptions options = new RequestOptions()
-                    .diskCacheStrategy(DiskCacheStrategy.NONE)
-                    .skipMemoryCache(true)
-                    .fitCenter();
-
-            if (!isFinishing() && !isDestroyed()) {
-                Glide.with(this)
-                        .load(imageFile)
-                        .apply(options)
-                        .into(photoView);
-            }
+                        @Override
+                        public boolean onResourceReady(Drawable resource, Object model,
+                                                       Target<Drawable> target, DataSource dataSource,
+                                                       boolean isFirstResource) {
+                            // 图片加载成功
+                            return false;
+                        }
+                    })
+                    .into(photoView);
 
         } catch (Exception e) {
             Log.e(TAG, "Error loading image", e);
             Toast.makeText(this, "无法加载图片: " + e.getMessage(),
                     Toast.LENGTH_SHORT).show();
             finish();
-        }
-    }
-
-    private void cleanupFiles(String path) {
-        try {
-            if (path != null) {
-                File file = new File(path);
-                boolean deleted = file.delete();
-                if (!deleted) {
-                    Log.w(TAG, "Failed to delete file: " + path);
-                }
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error deleting file", e);
-        }
-    }
-
-    private void processDocument() {
-        if (isProcessing) return;
-
-        try {
-            File sourceFile = new File(currentPhotoPath);
-            if (!sourceFile.exists() || !sourceFile.canRead()) {
-                throw new IOException("无法访问源图片文件");
-            }
-
-            // 复制到处理目录
-            File outputDir = new File(getFilesDir(), "processing");
-            if (!outputDir.exists() && !outputDir.mkdirs()) {
-                throw new IOException("无法创建处理目录");
-            }
-
-            File processingFile = new File(outputDir,
-                    "processing_" + System.currentTimeMillis() + ".jpg");
-            copyFile(sourceFile, processingFile);
-
-            isProcessing = true;
-            progressDialog.show();
-
-            new Thread(() -> {
-                try {
-                    DocumentProcessor.DocumentResult result =
-                            DocumentProcessor.processDocument(this, processingFile.getAbsolutePath());
-
-                    // 验证处理结果
-                    File processedFile = new File(result.processedPath);
-                    if (!processedFile.exists() || !processedFile.canRead()) {
-                        throw new IOException("处理后的文件无法访问");
-                    }
-
-                    runOnUiThread(() -> {
-                        currentPhotoPath = result.processedPath;
-                        loadImage();
-                        Toast.makeText(this, R.string.process_success, Toast.LENGTH_SHORT).show();
-                    });
-                } catch (Exception e) {
-                    Log.e(TAG, "Error processing document", e);
-                    runOnUiThread(() ->
-                            Toast.makeText(this,
-                                    getString(R.string.process_failed) + ": " + e.getMessage(),
-                                    Toast.LENGTH_LONG).show()
-                    );
-                } finally {
-                    runOnUiThread(() -> {
-                        progressDialog.dismiss();
-                        isProcessing = false;
-                    });
-                    processingFile.delete(); // 清理临时文件
-                }
-            }).start();
-        } catch (Exception e) {
-            Toast.makeText(this, "处理文档失败: " + e.getMessage(), Toast.LENGTH_LONG).show();
-        }
-    }
-
-    @Override
-    public void finish() {
-        if (photoView != null && !isFinishing() && !isDestroyed()) {
-            try {
-                Glide.with(getApplicationContext()).clear(photoView);
-            } catch (Exception e) {
-                Log.e(TAG, "Error clearing image view", e);
-            }
-        }
-        super.finish();
-        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right);
-    }
-
-    @Override
-    public void onBackPressed() {
-        super.onBackPressed();  // 调用父类方法
-        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right);
-    }
-
-    private void copyFile(File source, File dest) throws IOException {
-        try (FileChannel sourceChannel = new FileInputStream(source).getChannel();
-             FileChannel destChannel = new FileOutputStream(dest).getChannel()) {
-            destChannel.transferFrom(sourceChannel, 0, sourceChannel.size());
         }
     }
 
@@ -286,26 +264,20 @@ public class PhotoPreviewActivity extends AppCompatActivity {
     }
 
     @Override
+    public void finish() {
+        super.finish();
+        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right);
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
-
         if (progressDialog != null && progressDialog.isShowing()) {
             progressDialog.dismiss();
         }
 
-        if (photoView != null && !isFinishing() && !isDestroyed()) {
-            try {
-                Glide.get(getApplicationContext()).clearMemory();
-                new Thread(() -> {
-                    try {
-                        Glide.get(getApplicationContext()).clearDiskCache();
-                    } catch (Exception e) {
-                        Log.e(TAG, "Error clearing disk cache", e);
-                    }
-                }).start();
-            } catch (Exception e) {
-                Log.e(TAG, "Error clearing Glide cache", e);
-            }
+        if (photoView != null && !isFinishing()) {
+            Glide.with(this).clear(photoView);
         }
     }
 

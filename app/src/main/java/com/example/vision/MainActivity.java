@@ -9,8 +9,6 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -49,32 +47,6 @@ public class MainActivity extends AppCompatActivity {
         initViews();
     }
 
-    private void initViews() {
-        // 历史记录按钮
-        ImageButton historyButton = findViewById(R.id.historyButton);
-        historyButton.setOnClickListener(v -> {
-            // 跳转到历史记录界面
-            Intent intent = new Intent(MainActivity.this, HistoryActivity.class);
-            startActivity(intent);
-        });
-
-        // 数学公式识别卡片
-        CardView latexCard = findViewById(R.id.latexCard);
-        latexCard.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, CameraActivity.class);
-            intent.putExtra("mode", "latex");  // 设置为LaTeX模式
-            startActivity(intent);
-        });
-
-        // 文档矫正卡片
-        CardView documentCard = findViewById(R.id.documentCard);
-        documentCard.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, CameraActivity.class);
-            intent.putExtra("mode", "document");  // 设置为文档模式
-            startActivity(intent);
-        });
-    }
-
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
@@ -95,6 +67,30 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, "需要相关权限才能使用此功能", Toast.LENGTH_SHORT).show();
             }
         }
+    }
+    private void initViews() {
+        // 历史记录按钮
+        ImageButton historyButton = findViewById(R.id.historyButton);
+        historyButton.setOnClickListener(v -> {
+            // 跳转到历史记录界面
+            Intent intent = new Intent(MainActivity.this, HistoryActivity.class);
+            startActivity(intent);
+        });
+
+        // 数学公式识别卡片
+        CardView latexCard = findViewById(R.id.latexCard);
+        latexCard.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, CameraActivity.class);
+            intent.putExtra("mode", "latex");  // 设置为LaTeX模式
+            startActivity(intent);
+        });
+
+        // 文档矫正卡片 - 修改这里的点击事件
+        CardView documentCard = findViewById(R.id.documentCard);
+        documentCard.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, DocumentActivity.class);
+            startActivity(intent);
+        });
     }
 
     // 双击退出功能

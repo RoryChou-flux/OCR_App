@@ -1,10 +1,10 @@
 package com.example.vision;
-
-import android.content.ContentValues;
+import java.util.Queue;
+import java.util.LinkedList;
+import android.content.ClipData;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.util.Log;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
@@ -24,10 +24,13 @@ import com.google.common.util.concurrent.ListenableFuture;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
+import android.os.Environment;
+import java.io.File;
+import java.util.Date;
 
 public class CameraActivity extends AppCompatActivity {
     private static final String TAG = "CameraActivity";
-
+    private Queue<Uri> pendingImages; // 添加等待处理的图片队列
     private PreviewView previewView;
     private ImageCapture imageCapture;
     private FloatingActionButton captureButton;
@@ -43,10 +46,21 @@ public class CameraActivity extends AppCompatActivity {
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
                 if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                    Uri selectedImageUri = result.getData().getData();
-                    if (selectedImageUri != null) {
-                        handleGalleryImage(selectedImageUri);
+                    Intent data = result.getData();
+                    pendingImages = new LinkedList<>(); // 初始化队列
+
+                    // 收集所有选中的图片URI
+                    if (data.getClipData() != null) {
+                        ClipData clipData = data.getClipData();
+                        for (int i = 0; i < clipData.getItemCount(); i++) {
+                            pendingImages.add(clipData.getItemAt(i).getUri());
+                        }
+                    } else if (data.getData() != null) {
+                        pendingImages.add(data.getData());
                     }
+
+                    // 开始处理第一张图片
+                    processNextImage();
                 }
             }
     );
@@ -60,15 +74,19 @@ public class CameraActivity extends AppCompatActivity {
                         boolean isContinue = result.getData().getBooleanExtra(
                                 DocumentPhotoManager.EXTRA_IS_CONTINUE, false);
 
-                        // 返回到现有的DocumentActivity
-                        Intent intent = new Intent(this, DocumentActivity.class);
-                        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                        intent.putExtra("imagePath", imagePath);
-                        intent.putExtra("timestamp", System.currentTimeMillis());
-                        startActivity(intent);
+                        // 处理当前图片
+                        if (DocumentActivity.getInstance() != null) {
+                            DocumentActivity.addNewPhoto(imagePath);
+                        } else {
+                            Intent intent = new Intent(this, DocumentActivity.class);
+                            intent.putExtra("imagePath", imagePath);
+                            startActivity(intent);
+                        }
 
-                        // 如果不继续拍摄，关闭相机
-                        if (!isContinue) {
+                        // 处理队列中的下一张图片
+                        if (!pendingImages.isEmpty()) {
+                            processNextImage();
+                        } else if (!isContinue) {
                             finish();
                         }
                     }
@@ -83,6 +101,7 @@ public class CameraActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera);
+        pendingImages = new LinkedList<>(); // 初始化队列
         initializeViews();
         setupClickListeners();
         startCamera();
@@ -113,25 +132,30 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     private void openGallery() {
-        Intent intent = new Intent(Intent.ACTION_PICK);
-        intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
-        galleryLauncher.launch(intent);
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("image/*");
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        galleryLauncher.launch(Intent.createChooser(intent, "选择图片"));
     }
 
     private void takePhoto() {
         if (imageCapture == null) return;
 
-        String filename = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
-                .format(System.currentTimeMillis());
-        ContentValues contentValues = new ContentValues();
-        contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, filename);
-        contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg");
+        // 创建照片文件
+        File photoFile;
+        try {
+            String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault())
+                    .format(new Date());
+            String fileName = "IMG" + timeStamp + ".jpg";
+            File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+            photoFile = new File(storageDir, fileName);
+        } catch (Exception e) {
+            Log.e(TAG, "Error creating photo file", e);
+            showToast(getString(R.string.save_error));
+            return;
+        }
 
-        ImageCapture.OutputFileOptions outputOptions = new ImageCapture.OutputFileOptions.Builder(
-                getContentResolver(),
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                contentValues)
-                .build();
+        ImageCapture.OutputFileOptions outputOptions = new ImageCapture.OutputFileOptions.Builder(photoFile).build();
 
         imageCapture.takePicture(
                 outputOptions,
@@ -139,7 +163,7 @@ public class CameraActivity extends AppCompatActivity {
                 new ImageCapture.OnImageSavedCallback() {
                     @Override
                     public void onImageSaved(@NonNull ImageCapture.OutputFileResults output) {
-                        Uri savedUri = output.getSavedUri();
+                        Uri savedUri = Uri.fromFile(photoFile);
                         if (savedUri != null) {
                             handleCapturedImage(savedUri);
                         }
@@ -166,13 +190,6 @@ public class CameraActivity extends AppCompatActivity {
             Log.e(TAG, "Error handling captured image", e);
             Toast.makeText(this, "处理拍摄图片时出错", Toast.LENGTH_SHORT).show();
         }
-    }
-    private void handleGalleryImage(Uri imageUri) {
-        String mode = getIntent().getStringExtra("mode");
-        Intent intent = new Intent(this, CropActivity.class);
-        intent.putExtra("sourceUri", imageUri);
-        intent.putExtra("mode", mode);
-        cropLauncher.launch(intent);
     }
 
     private void toggleFlash() {
@@ -232,6 +249,17 @@ public class CameraActivity extends AppCompatActivity {
             imageCapture.setFlashMode(isFlashOn ?
                     ImageCapture.FLASH_MODE_ON :
                     ImageCapture.FLASH_MODE_OFF);
+        }
+    }
+
+    private void processNextImage() {
+        if (!pendingImages.isEmpty()) {
+            Uri imageUri = pendingImages.poll(); // 获取并移除队列头部的URI
+            String mode = getIntent().getStringExtra("mode");
+            Intent intent = new Intent(this, CropActivity.class);
+            intent.putExtra("sourceUri", imageUri);
+            intent.putExtra("mode", mode);
+            cropLauncher.launch(intent);
         }
     }
 

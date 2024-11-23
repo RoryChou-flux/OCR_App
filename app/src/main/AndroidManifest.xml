@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.BROADCAST_CLOSE_SYSTEM_DIALOGS" />
     <!-- 必需的权限 -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
@@ -56,6 +57,12 @@
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
+
+        <activity
+            android:name=".CompareActivity"
+            android:configChanges="orientation|screenSize"
+            android:screenOrientation="unspecified"
+            android:theme="@style/Theme.Vision.NoActionBar" />
 
         <!-- 相机活动 -->
         <activity

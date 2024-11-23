@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 通用卡片样式 -->
+    <!-- Component styles -->
     <style name="CardStyle">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
@@ -9,140 +9,21 @@
         <item name="cardElevation">4dp</item>
     </style>
 
-    <!-- 活动转场动画主题 -->
-    <style name="Theme.Vision.Transitions" parent="Theme.Vision.NoActionBar">
-        <item name="android:windowAnimationStyle">@style/WindowAnimationTransition</item>
+    <!-- Dialog styles -->
+    <style name="ProgressDialog" parent="ThemeOverlay.MaterialComponents.Dialog.Alert">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowMinWidthMajor">50%</item>
+        <item name="android:windowMinWidthMinor">50%</item>
     </style>
 
-    <style name="WindowAnimationTransition">
-        <item name="android:windowEnterAnimation">@anim/slide_in_right</item>
-        <item name="android:windowExitAnimation">@anim/slide_out_left</item>
-    </style>
-
-
-
-    <!-- 全屏主题样式 -->
-    <style name="Theme.Vision.Fullscreen" parent="Theme.Vision.NoActionBar">
-        <item name="android:windowFullscreen">true</item>
-        <item name="android:windowTranslucentStatus">true</item>
-        <item name="android:windowTranslucentNavigation">true</item>
-        <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:statusBarColor">@android:color/transparent</item>
-    </style>
-
-    <!-- 图片预览控件样式 -->
-    <style name="PreviewPhotoView">
+    <!-- Photo styles -->
+    <style name="PhotoPreview">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">match_parent</item>
         <item name="android:background">@android:color/black</item>
         <item name="android:transitionName">photo_transition</item>
     </style>
 
-    <!-- 预览界面控制栏样式 -->
-    <style name="PreviewControlBar">
-        <item name="android:layout_width">match_parent</item>
-        <item name="android:layout_height">wrap_content</item>
-        <item name="android:background">@drawable/gradient_transparent_to_dark</item>
-        <item name="android:paddingTop">16dp</item>
-        <item name="android:paddingBottom">16dp</item>
-        <item name="android:paddingStart">16dp</item>
-        <item name="android:paddingEnd">16dp</item>
-    </style>
-
-    <!-- 主要按钮样式 -->
-    <style name="PrimaryButton" parent="Widget.MaterialComponents.Button">
-        <item name="android:layout_width">wrap_content</item>
-        <item name="android:layout_height">wrap_content</item>
-        <item name="android:textAllCaps">false</item>
-        <item name="android:paddingStart">16dp</item>
-        <item name="android:paddingEnd">16dp</item>
-        <item name="cornerRadius">8dp</item>
-    </style>
-
-    <!-- 次要按钮样式 -->
-    <style name="SecondaryButton" parent="Widget.MaterialComponents.Button.OutlinedButton">
-        <item name="android:layout_width">wrap_content</item>
-        <item name="android:layout_height">wrap_content</item>
-        <item name="android:textAllCaps">false</item>
-        <item name="android:paddingStart">16dp</item>
-        <item name="android:paddingEnd">16dp</item>
-        <item name="cornerRadius">8dp</item>
-    </style>
-
-    <!-- 图标按钮样式 -->
-    <style name="IconButton" parent="Widget.MaterialComponents.Button.OutlinedButton">
-        <item name="android:layout_width">48dp</item>
-        <item name="android:layout_height">48dp</item>
-        <item name="android:padding">12dp</item>
-        <item name="cornerRadius">24dp</item>
-        <item name="android:insetLeft">0dp</item>
-        <item name="android:insetTop">0dp</item>
-        <item name="android:insetRight">0dp</item>
-        <item name="android:insetBottom">0dp</item>
-    </style>
-
-    <!-- 标题文本样式 -->
-    <style name="TitleText">
-        <item name="android:layout_width">wrap_content</item>
-        <item name="android:layout_height">wrap_content</item>
-        <item name="android:textSize">20sp</item>
-        <item name="android:textColor">@color/on_surface</item>
-        <item name="android:textStyle">bold</item>
-    </style>
-
-    <!-- 副标题文本样式 -->
-    <style name="SubtitleText">
-        <item name="android:layout_width">wrap_content</item>
-        <item name="android:layout_height">wrap_content</item>
-        <item name="android:textSize">16sp</item>
-        <item name="android:textColor">@color/on_surface_variant</item>
-    </style>
-
-    <!-- 正文文本样式 -->
-    <style name="BodyText">
-        <item name="android:layout_width">wrap_content</item>
-        <item name="android:layout_height">wrap_content</item>
-        <item name="android:textSize">14sp</item>
-        <item name="android:textColor">@color/on_surface_variant</item>
-    </style>
-
-    <!-- 浮动操作按钮样式 -->
-    <style name="FloatingActionButton">
-        <item name="android:layout_width">wrap_content</item>
-        <item name="android:layout_height">wrap_content</item>
-        <item name="android:layout_margin">16dp</item>
-        <item name="fabSize">normal</item>
-        <item name="tint">@color/on_primary</item>
-    </style>
-
-    <!-- 工具栏样式 -->
-    <style name="Toolbar">
-        <item name="android:layout_width">match_parent</item>
-        <item name="android:layout_height">?attr/actionBarSize</item>
-        <item name="android:background">@color/surface</item>
-        <item name="titleTextColor">@color/on_surface</item>
-        <item name="subtitleTextColor">@color/on_surface_variant</item>
-    </style>
-
-    <!-- 底部导航栏样式 -->
-    <style name="BottomAppBar">
-        <item name="android:layout_width">match_parent</item>
-        <item name="android:layout_height">wrap_content</item>
-        <item name="android:layout_gravity">bottom</item>
-        <item name="backgroundTint">@color/surface</item>
-        <item name="fabCradleMargin">8dp</item>
-        <item name="fabCradleRoundedCornerRadius">32dp</item>
-        <item name="fabCradleVerticalOffset">6dp</item>
-    </style>
-
-    <!-- 相机预览样式 -->
-    <style name="CameraPreview">
-        <item name="android:layout_width">match_parent</item>
-        <item name="android:layout_height">match_parent</item>
-        <item name="android:background">@color/black</item>
-    </style>
-
-    <!-- 图片网格样式 -->
     <style name="PhotoGrid">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
@@ -150,36 +31,22 @@
         <item name="android:padding">4dp</item>
     </style>
 
-    <!-- 进度对话框样式 -->
-    <style name="ProgressDialog" parent="ThemeOverlay.MaterialComponents.Dialog.Alert">
-        <item name="android:windowBackground">@android:color/transparent</item>
-        <item name="android:windowMinWidthMajor">50%</item>
-        <item name="android:windowMinWidthMinor">50%</item>
-    </style>
-
-    <!-- 全屏图片预览样式 -->
-    <style name="FullscreenImageView">
-        <item name="android:layout_width">match_parent</item>
-        <item name="android:layout_height">match_parent</item>
-        <item name="android:scaleType">fitCenter</item>
-        <item name="android:background">@color/black</item>
-    </style>
-
-    <!-- 圆形按钮样式 -->
-    <style name="CircleButton">
-        <item name="android:layout_width">48dp</item>
-        <item name="android:layout_height">48dp</item>
-        <item name="android:background">@drawable/bg_circle</item>
-        <item name="android:padding">12dp</item>
-        <item name="android:tint">@color/white</item>
-    </style>
-
-    <!-- 分割线样式 -->
+    <!-- UI Element styles -->
     <style name="Divider">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">1dp</item>
         <item name="android:background">@color/outline</item>
     </style>
 
+    <style name="PreviewControlBar">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:background">@drawable/gradient_transparent_to_dark</item>
+        <item name="android:padding">16dp</item>
+    </style>
 
+    <style name="WindowAnimationTransition">
+        <item name="android:windowEnterAnimation">@anim/slide_in_right</item>
+        <item name="android:windowExitAnimation">@anim/slide_out_left</item>
+    </style>
 </resources>

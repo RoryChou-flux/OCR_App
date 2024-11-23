@@ -3,13 +3,10 @@ package com.example.vision;
 import android.os.Parcel;
 import android.os.Parcelable;
 import java.io.File;
-import java.util.ArrayList;
 
 public class DocumentPhotoManager {
-    public static final String EXTRA_PHOTO_ITEMS = "photo_items";
     public static final String EXTRA_IS_CONTINUE = "is_continue";
-    public static final int REQUEST_CODE_CROP = 1001;
-    public static final int REQUEST_CODE_DOCUMENT = 1002;
+
 
     public static class PhotoItem implements Parcelable {
         private final String originalPath;
@@ -60,9 +57,5 @@ public class DocumentPhotoManager {
             return new File(originalPath).exists() && new File(thumbnailPath).exists();
         }
 
-        public void delete() {
-            new File(originalPath).delete();
-            new File(thumbnailPath).delete();
-        }
     }
 }

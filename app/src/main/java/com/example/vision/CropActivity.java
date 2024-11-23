@@ -6,9 +6,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.yalantis.ucrop.UCrop;
 import java.io.File;
 
@@ -146,49 +144,6 @@ public class CropActivity extends AppCompatActivity {
             showError(getString(R.string.process_failed) + ": " + e.getMessage());
             finish();
         }
-    }
-
-    private void showContinueDialog(String croppedPath) {
-        new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.continue_capture_title)
-                .setItems(new String[]{
-                        getString(R.string.continue_capture),
-                        getString(R.string.finish_capture)
-                }, (dialog, which) -> {
-                    // 确保返回到现有的DocumentActivity而不是创建新的
-                    Intent resultIntent = new Intent();
-                    resultIntent.putExtra("imagePath", croppedPath);
-                    resultIntent.putExtra(DocumentPhotoManager.EXTRA_IS_CONTINUE, which == 0);
-                    setResult(RESULT_OK, resultIntent);
-                    finish();
-                })
-                .setCancelable(false)
-                .show();
-    }
-
-    private void processDocument(String imagePath) {
-        AlertDialog progressDialog = new MaterialAlertDialogBuilder(this)
-                .setView(R.layout.dialog_processing)
-                .setCancelable(false)
-                .create();
-        progressDialog.show();
-
-        new Thread(() -> {
-            try {
-                DocumentProcessor.DocumentResult result =
-                        DocumentProcessor.processDocument(this, imagePath);
-
-                runOnUiThread(() -> {
-                    progressDialog.dismiss();
-                    returnResult(result.processedPath, false);
-                });
-            } catch (Exception e) {
-                runOnUiThread(() -> {
-                    progressDialog.dismiss();
-                    showError(getString(R.string.process_failed) + ": " + e.getMessage());
-                });
-            }
-        }).start();
     }
 
     private void returnResult(String imagePath, boolean isContinue) {

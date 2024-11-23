@@ -2,6 +2,7 @@
 <androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/background_gradient">
@@ -19,23 +20,22 @@
             android:layout_height="match_parent"
             android:background="@drawable/card_background">
 
+            <!-- 顶部工具栏 -->
             <LinearLayout
                 android:id="@+id/topBar"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:paddingHorizontal="16dp"
-                android:gravity="top"
                 app:layout_constraintTop_toTopOf="parent">
 
-                <!-- 左侧部分：返回按钮、标题和计数 -->
+                <!-- 左侧：返回按钮和标题 -->
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:orientation="vertical">
 
-                    <!-- 顶部导航栏 -->
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -63,7 +63,6 @@
                             android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- 照片计数文本 -->
                     <TextView
                         android:id="@+id/photoCountText"
                         android:layout_width="wrap_content"
@@ -75,8 +74,40 @@
 
                 </LinearLayout>
 
-                <!-- 右侧按钮部分保持不变 -->
+                <!-- 选择模式控制按钮 -->
                 <LinearLayout
+                    android:id="@+id/selectionControlsBar"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/selectAllButton"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/select_all"
+                        android:textColor="@color/text_primary"
+                        app:icon="@drawable/check_circle_icon"
+                        app:iconTint="@color/text_primary"/>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/cancelSelectionButton"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:text="@string/cancel_selection"
+                        android:textColor="@color/text_primary"
+                        app:icon="@drawable/ic_close"
+                        app:iconTint="@color/text_primary"/>
+
+                </LinearLayout>
+
+                <!-- 其他按钮 -->
+                <LinearLayout
+                    android:id="@+id/actionButtons"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
@@ -98,21 +129,23 @@
                         app:icon="@drawable/ic_document"/>
 
                 </LinearLayout>
-
             </LinearLayout>
 
             <!-- 照片网格区域 -->
+
+            <!-- 底部功能按钮区域 -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/photoGrid"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
+                android:layout_marginBottom="80dp"
                 android:clipToPadding="false"
                 android:padding="16dp"
-                android:layout_marginBottom="80dp"
+                app:layout_constraintBottom_toTopOf="@id/bottomBar"
                 app:layout_constraintTop_toBottomOf="@id/topBar"
-                app:layout_constraintBottom_toTopOf="@id/bottomBar" />
+                app:layout_constraintVertical_bias="0.0"
+                tools:layout_editor_absoluteX="-68dp" />
 
-            <!-- 底部功能按钮区域 -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/bottomBar"
                 android:layout_width="match_parent"
@@ -137,13 +170,10 @@
                         android:layout_marginEnd="8dp"
                         android:text="@string/export_pdf"
                         android:textColor="@android:color/white"
-                        app:icon="@drawable/ic_pdf"
+
                         app:iconTint="@android:color/white"
                         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                        app:strokeColor="@android:color/white"
-                        app:iconSize="24dp"
-                        app:iconPadding="8dp"
-                        android:contentDescription="@string/export_pdf_desc"/>
+                        app:strokeColor="@android:color/white"/>
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/exportPngButton"
@@ -152,33 +182,50 @@
                         android:layout_weight="1"
                         android:text="@string/export_png"
                         android:textColor="@android:color/white"
-                        app:icon="@drawable/ic_image"
+
                         app:iconTint="@android:color/white"
                         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                        app:strokeColor="@android:color/white"
-                        app:iconSize="24dp"
-                        app:iconPadding="8dp"
-                        android:contentDescription="@string/export_png_desc"/>
+                        app:strokeColor="@android:color/white"/>
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+
+            <!-- 确认选择按钮 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/confirmSelectionButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="16dp"
+                android:text="@string/confirm_selection"
+                android:visibility="gone"
+                android:backgroundTint="@color/primary"
+                android:textColor="@android:color/white"
+                app:strokeColor="@color/primary"
+                app:strokeWidth="0dp"
+                style="@style/Widget.MaterialComponents.Button"
+                app:layout_constraintBottom_toTopOf="@id/bottomBar"/>
+
+
             <!-- 添加照片按钮，悬浮于底部栏中央 -->
+
+            <!-- 添加处理进度条 -->
+
             <com.google.android.material.floatingactionbutton.FloatingActionButton
                 android:id="@+id/addPhotoButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
+                android:layout_marginBottom="64dp"
                 android:contentDescription="@string/add_photo_desc"
                 android:src="@drawable/ic_add_photo"
                 app:fabSize="normal"
+                app:layout_constraintBottom_toBottomOf="@id/bottomBar"
                 app:layout_constraintBottom_toTopOf="@id/bottomBar"
                 app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.95"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintBottom_toBottomOf="@id/bottomBar"
                 app:tint="@android:color/white" />
 
-            <!-- 添加处理进度条 -->
             <ProgressBar
                 android:id="@+id/processingProgress"
                 android:layout_width="wrap_content"
@@ -188,6 +235,7 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"/>
+
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.cardview.widget.CardView>

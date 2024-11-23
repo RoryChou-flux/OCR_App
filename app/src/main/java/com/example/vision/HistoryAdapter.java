@@ -1,130 +1,220 @@
 package com.example.vision;
 
-import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
-import java.text.SimpleDateFormat;
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 
-public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHolder> {
-
+public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.HistoryViewHolder> {
     private final List<HistoryItem> historyItems = new ArrayList<>();
+    private boolean isSelectionMode = false;
+    private final HashSet<Integer> selectedItems = new HashSet<>();
+    private final HistoryActionListener listener;
+    private SwipeLayout lastOpenedLayout;
 
-    public static class HistoryItem {
-        private final String imagePath;      // 原图路径
-        private final String thumbnailPath;  // 缩略图路径
-        private final String type;
-        private final long timestamp;
-        private final String result;
-
-        public HistoryItem(String imagePath, String thumbnailPath, String type, long timestamp, String result) {
-            this.imagePath = imagePath;
-            this.thumbnailPath = thumbnailPath;
-            this.type = type;
-            this.timestamp = timestamp;
-            this.result = result;
-        }
-
-        public String getImagePath() { return imagePath; }
-        public String getThumbnailPath() { return thumbnailPath; }
-        public String getType() { return type; }
-        public long getTimestamp() { return timestamp; }
-        public String getResult() { return result; }
+    public interface HistoryActionListener {
+        void onItemClick(HistoryItem item);
+        void onDeleteClick(HistoryItem item);
+        void onSelectionChanged(int selectedCount);
     }
 
-    public static class ViewHolder extends RecyclerView.ViewHolder {
+    public static class HistoryViewHolder extends RecyclerView.ViewHolder {
+        final View contentView;
         final ImageView thumbnailImage;
-        final TextView typeText;
         final TextView timeText;
-        final TextView resultText;
-        final View itemContainer;
+        final CheckBox selectionCheckBox;
+        final ImageButton deleteButton;
+        final SwipeLayout swipeLayout;
 
-        public ViewHolder(@NonNull View itemView) {
+        HistoryViewHolder(@NonNull View itemView) {
             super(itemView);
+            contentView = itemView.findViewById(R.id.contentCard);
             thumbnailImage = itemView.findViewById(R.id.thumbnailImage);
-            typeText = itemView.findViewById(R.id.typeText);
             timeText = itemView.findViewById(R.id.timeText);
-            resultText = itemView.findViewById(R.id.resultText);
-            itemContainer = itemView;  // 用于设置点击事件
+            selectionCheckBox = itemView.findViewById(R.id.selectionCheckBox);
+            deleteButton = itemView.findViewById(R.id.deleteButton);
+            swipeLayout = (SwipeLayout) itemView;
         }
+    }
+
+    public static class HistoryItem {
+        private final String originalPath;
+        private final String processedPath;
+        private final String thumbnailPath;
+        private final long timestamp;
+
+        public HistoryItem(String originalPath, String processedPath, String thumbnailPath, long timestamp) {
+            this.originalPath = originalPath;
+            this.processedPath = processedPath;
+            this.thumbnailPath = thumbnailPath;
+            this.timestamp = timestamp;
+        }
+
+        public String getOriginalPath() { return originalPath; }
+        public String getProcessedPath() { return processedPath; }
+        public String getThumbnailPath() { return thumbnailPath; }
+        public long getTimestamp() { return timestamp; }
+    }
+
+    public HistoryAdapter(HistoryActionListener listener) {
+        this.listener = listener;
     }
 
     @NonNull
     @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+    public HistoryViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_history, parent, false);
-        return new ViewHolder(view);
-    }
-
-    public List<HistoryItem> getItems() {
-        return new ArrayList<>(historyItems);
+        return new HistoryViewHolder(view);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull HistoryViewHolder holder, int position) {
         HistoryItem item = historyItems.get(position);
 
         // 加载缩略图
-        File thumbnailFile = new File(item.getThumbnailPath());
         Glide.with(holder.thumbnailImage)
-                .load(thumbnailFile)
+                .load(new File(item.getThumbnailPath()))
                 .centerCrop()
                 .error(android.R.drawable.ic_dialog_alert)
                 .into(holder.thumbnailImage);
 
-        // 设置类型标签
-        holder.typeText.setText(item.getType());
-
-        // 格式化并设置时间
+        // 设置时间戳
         holder.timeText.setText(formatTime(item.getTimestamp()));
 
-        // 设置结果文本
-        holder.resultText.setText(item.getResult());
+        // 设置选择框状态
+        holder.selectionCheckBox.setVisibility(isSelectionMode ? View.VISIBLE : View.GONE);
+        holder.selectionCheckBox.setChecked(selectedItems.contains(position));
 
-        // 设置点击事件，点击后根据类型跳转到对应的处理活动
-        holder.itemContainer.setOnClickListener(v -> {
-            Intent intent;
-            if ("LATEX".equals(item.getType())) {
-                intent = new Intent(v.getContext(), LatexActivity.class);
-            } else {
-                intent = new Intent(v.getContext(), DocumentActivity.class);
+        // 重置swipe状态
+        holder.swipeLayout.close();
+
+        // 设置滑动状态监听
+        holder.swipeLayout.setOnSwipeListener(isOpen -> {
+            if (isOpen && lastOpenedLayout != null && lastOpenedLayout != holder.swipeLayout) {
+                lastOpenedLayout.close();
             }
+            if (isOpen) {
+                lastOpenedLayout = holder.swipeLayout;
+            }
+        });
 
-            // 传递原图路径和其他必要信息
-            intent.putExtra("imagePath", item.getImagePath());
-            intent.putExtra("mode", item.getType());
-            intent.putExtra("result", item.getResult());
-            // 可以传递其他需要的信息
+        // 设置删除按钮点击事件
+        holder.deleteButton.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onDeleteClick(item);
+            }
+            holder.swipeLayout.close();
+        });
 
-            v.getContext().startActivity(intent);
+        // 设置内容点击事件
+        holder.contentView.setOnClickListener(v -> {
+            if (holder.swipeLayout.isOpen()) {
+                holder.swipeLayout.close();
+            } else if (isSelectionMode) {
+                toggleSelection(position);
+            } else if (listener != null) {
+                listener.onItemClick(item);
+            }
         });
     }
+
+
 
     @Override
     public int getItemCount() {
         return historyItems.size();
     }
 
+    public void setSelectionMode(boolean selectionMode) {
+        if (this.isSelectionMode != selectionMode) {
+            this.isSelectionMode = selectionMode;
+            if (!selectionMode) {
+                selectedItems.clear();
+                if (listener != null) {
+                    listener.onSelectionChanged(0);
+                }
+            }
+            notifyItemRangeChanged(0, historyItems.size());
+        }
+    }
+
+    public void selectAll() {
+        selectedItems.clear();
+        for (int i = 0; i < historyItems.size(); i++) {
+            selectedItems.add(i);
+        }
+        if (listener != null) {
+            listener.onSelectionChanged(selectedItems.size());
+        }
+        notifyItemRangeChanged(0, historyItems.size());
+    }
+
+    public void toggleSelection(int position) {
+        if (selectedItems.contains(position)) {
+            selectedItems.remove(position);
+        } else {
+            selectedItems.add(position);
+        }
+        if (listener != null) {
+            listener.onSelectionChanged(selectedItems.size());
+        }
+        notifyItemChanged(position);
+    }
+
+    public List<HistoryItem> getSelectedItems() {
+        List<HistoryItem> items = new ArrayList<>();
+        for (Integer position : selectedItems) {
+            items.add(historyItems.get(position));
+        }
+        return items;
+    }
+
     public void updateItems(List<HistoryItem> newItems) {
         historyItems.clear();
         historyItems.addAll(newItems);
+        selectedItems.clear();
         notifyDataSetChanged();
     }
+
+    public void removeItem(HistoryItem item) {
+        if (lastOpenedLayout != null) {
+            lastOpenedLayout.close();
+            lastOpenedLayout = null;
+        }
+        int position = historyItems.indexOf(item);
+        if (position != -1) {
+            historyItems.remove(position);
+            notifyItemRemoved(position);
+            notifyItemRangeChanged(position, historyItems.size() - position);
+        }
+    }
+
+    public void removeItems(List<HistoryItem> items) {
+        for (HistoryItem item : items) {
+            removeItem(item);
+        }
+        selectedItems.clear();
+    }
+
 
     private String formatTime(long timestamp) {
         Date date = new Date(timestamp);
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
         return format.format(date);
     }
+
 }

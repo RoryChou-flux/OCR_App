@@ -1,5 +1,4 @@
 package com.example.vision;
-
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -10,6 +9,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.button.MaterialButton;
@@ -21,10 +21,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
+import java.util.Set;
 
-public class DocumentActivity extends AppCompatActivity {
+public class DocumentActivity extends AppCompatActivity implements PhotoAdapter.PhotoActionListener {
     private static final String TAG = "DocumentActivity";
-
+    private static DocumentActivity instance;
     private RecyclerView photoGrid;
     private PhotoAdapter photoAdapter;
     private final ArrayList<DocumentPhotoManager.PhotoItem> photoItems = new ArrayList<>();
@@ -34,10 +35,22 @@ public class DocumentActivity extends AppCompatActivity {
     private View processingProgress;
     private volatile boolean isProcessing = false;
 
+    private String currentSelectionMode = null;
+    private MaterialButton selectAllButton;
+    private MaterialButton cancelSelectionButton;
+    private MaterialButton confirmSelectionButton;
+    private boolean isSelectionMode = false;
+    private static final int REQUEST_PREVIEW = 1001;
+
+    public static DocumentActivity getInstance() {
+        return instance;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_document);
+        instance = this;
 
         if (savedInstanceState != null) {
             ArrayList<DocumentPhotoManager.PhotoItem> savedItems =
@@ -50,32 +63,26 @@ public class DocumentActivity extends AppCompatActivity {
         initViews();
         setupClickListeners();
         initProgressDialogs();
+        initSelectionControls();
 
         if (getIntent().hasExtra("imagePath")) {
-            handleNewPhoto(getIntent());
+            handleNewPhoto(getIntent().getStringExtra("imagePath"));
         }
     }
 
     private void initViews() {
         photoGrid = findViewById(R.id.photoGrid);
         processingProgress = findViewById(R.id.processingProgress);
+        selectAllButton = findViewById(R.id.selectAllButton);
+        cancelSelectionButton = findViewById(R.id.cancelSelectionButton);
+        confirmSelectionButton = findViewById(R.id.confirmSelectionButton);
 
-        // 使用LinearLayoutManager替代GridLayoutManager，实现单列滚动列表
-        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        // 初始化 LinearLayoutManager
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
         photoGrid.setLayoutManager(layoutManager);
 
-        photoAdapter = new PhotoAdapter(photoItems, new PhotoAdapter.PhotoActionListener() {
-            @Override
-            public void onPhotoClick(int position) {
-                showPhotoPreview(position);
-            }
 
-            @Override
-            public void onDeleteClick(int position) {
-                confirmDeletePhoto(position);
-            }
-        });
-
+        photoAdapter = new PhotoAdapter(photoItems, this);
         photoGrid.setAdapter(photoAdapter);
         photoCountText = findViewById(R.id.photoCountText);
         updatePhotoCount();
@@ -85,11 +92,11 @@ public class DocumentActivity extends AppCompatActivity {
         findViewById(R.id.backButton).setOnClickListener(v -> onBackPressed());
 
         findViewById(R.id.reshootButton).setOnClickListener(v -> {
-            if (!isProcessing) {
+            if (!isProcessing && !isSelectionMode) {
                 photoItems.clear();
                 photoAdapter.notifyDataSetChanged();
                 updatePhotoCount();
-                startCamera();
+                finish();
             }
         });
 
@@ -98,39 +105,76 @@ public class DocumentActivity extends AppCompatActivity {
                 Toast.makeText(this, R.string.no_photos, Toast.LENGTH_SHORT).show();
                 return;
             }
-            if (!isProcessing) {
-                processAllDocuments();
+            if (!isProcessing && !isSelectionMode) {
+                enterSelectionMode("correct");
             }
         });
 
         FloatingActionButton addButton = findViewById(R.id.addPhotoButton);
         addButton.setOnClickListener(v -> {
-            if (!isProcessing) {
+            if (!isProcessing && !isSelectionMode) {
                 startCamera();
             }
         });
 
-        MaterialButton exportPdfButton = findViewById(R.id.exportPdfButton);
-        exportPdfButton.setOnClickListener(v -> {
+        findViewById(R.id.exportPdfButton).setOnClickListener(v -> {
             if (photoItems.isEmpty()) {
                 Toast.makeText(this, R.string.no_photos, Toast.LENGTH_SHORT).show();
                 return;
             }
-            if (!isProcessing) {
-                exportToPdf();
+            if (!isProcessing && !isSelectionMode) {
+                enterSelectionMode("pdf");
             }
         });
 
-        MaterialButton exportPngButton = findViewById(R.id.exportPngButton);
-        exportPngButton.setOnClickListener(v -> {
+        findViewById(R.id.exportPngButton).setOnClickListener(v -> {
             if (photoItems.isEmpty()) {
                 Toast.makeText(this, R.string.no_photos, Toast.LENGTH_SHORT).show();
                 return;
             }
-            if (!isProcessing) {
-                exportToPng();
+            if (!isProcessing && !isSelectionMode) {
+                enterSelectionMode("png");
             }
         });
+
+        confirmSelectionButton.setOnClickListener(v -> {
+            if (!isProcessing && isSelectionMode) {
+                processSelectedItems();
+            }
+        });
+    }
+
+    private void initSelectionControls() {
+        selectAllButton.setOnClickListener(v -> photoAdapter.selectAll());
+        cancelSelectionButton.setOnClickListener(v -> exitSelectionMode());
+        confirmSelectionButton.setOnClickListener(v -> processSelectedItems());
+        updateSelectionModeViews(false);
+    }
+
+    private void enterSelectionMode(String mode) {
+        isSelectionMode = true;
+        currentSelectionMode = mode;
+        photoAdapter.setSelectionMode(true);
+        updateSelectionModeViews(true);
+    }
+
+    private void exitSelectionMode() {
+        isSelectionMode = false;
+        currentSelectionMode = null;
+        photoAdapter.setSelectionMode(false);
+
+        View selectionControlsBar = findViewById(R.id.selectionControlsBar);
+        View actionButtons = findViewById(R.id.actionButtons);
+        selectionControlsBar.setVisibility(View.GONE);
+        actionButtons.setVisibility(View.VISIBLE);
+        confirmSelectionButton.setVisibility(View.GONE);
+
+        updatePhotoCount();
+    }
+
+    private void updateSelectionModeViews(boolean showSelection) {
+        selectAllButton.setVisibility(showSelection ? View.VISIBLE : View.GONE);
+        cancelSelectionButton.setVisibility(showSelection ? View.VISIBLE : View.GONE);
     }
 
     private void initProgressDialogs() {
@@ -142,8 +186,292 @@ public class DocumentActivity extends AppCompatActivity {
         processingDialog = builder.create();
     }
 
-    private void handleNewPhoto(Intent intent) {
-        String imagePath = intent.getStringExtra("imagePath");
+    private void showProcessingDialog() {
+        if (progressDialog == null) {
+            progressDialog = new MaterialAlertDialogBuilder(this)
+                    .setView(R.layout.dialog_processing)
+                    .setCancelable(false)
+                    .create();
+        }
+        runOnUiThread(() -> {
+            if (!isFinishing() && progressDialog != null) {
+                progressDialog.show();
+            }
+        });
+    }
+
+    private void hideProcessingDialog() {
+        runOnUiThread(() -> {
+            if (progressDialog != null && progressDialog.isShowing()) {
+                progressDialog.dismiss();
+            }
+        });
+    }
+
+    // 在DocumentActivity中
+    private void showPhotoPreview(int position) {
+        if (isProcessing) return;
+
+        try {
+            if (position < 0 || position >= photoItems.size()) {
+                Log.e(TAG, "Invalid position: " + position);
+                return;
+            }
+
+            DocumentPhotoManager.PhotoItem item = photoItems.get(position);
+
+            File photoFile = new File(item.getOriginalPath());
+            if (!photoFile.exists() || !photoFile.canRead()) {
+                Toast.makeText(this, "无法访问图片文件", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            Intent previewIntent = new Intent(this, PhotoPreviewActivity.class);
+            previewIntent.putExtra("photo_path", item.getOriginalPath());
+            previewIntent.putExtra("original_path", item.getOriginalPath());
+            previewIntent.putExtra("position", position); // 传递当前位置
+            previewIntent.putExtra("total", photoItems.size()); // 传递总的图片数量
+
+            startActivityForResult(previewIntent, REQUEST_PREVIEW);
+            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error showing preview", e);
+            Toast.makeText(this, "无法显示预览：" + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_PREVIEW && resultCode == RESULT_OK && data != null) {
+            try {
+                String processedPath = data.getStringExtra("processed_path");
+                String thumbnailPath = data.getStringExtra("thumbnail_path");
+                String originalPath = data.getStringExtra("original_path");
+
+                if (originalPath != null && processedPath != null) {
+                    int position = -1;
+                    for (int i = 0; i < photoItems.size(); i++) {
+                        if (photoItems.get(i).getOriginalPath().equals(originalPath)) {
+                            position = i;
+                            break;
+                        }
+                    }
+
+                    if (position != -1) {
+                        DocumentPhotoManager.PhotoItem oldItem = photoItems.get(position);
+
+                        // 创建新的 PhotoItem，保留原有的 pageNumber
+                        DocumentPhotoManager.PhotoItem newItem = new DocumentPhotoManager.PhotoItem(
+                                processedPath,
+                                thumbnailPath != null ? thumbnailPath : oldItem.getThumbnailPath(),
+                                System.currentTimeMillis()
+                        );
+
+                        // 替换列表中的旧项
+                        photoItems.set(position, newItem);
+                        photoAdapter.notifyItemChanged(position);
+
+                        // 添加到历史记录
+                        DocumentHistoryManager.HistoryItem historyItem =
+                                new DocumentHistoryManager.HistoryItem(
+                                        originalPath,
+                                        processedPath,
+                                        thumbnailPath,
+                                        System.currentTimeMillis()
+                                );
+                        DocumentHistoryManager.addHistory(this, historyItem);
+                    } else {
+                        Log.e(TAG, "Original path not found in photoItems: " + originalPath);
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error updating preview result", e);
+                Toast.makeText(this, "更新预览结果失败：" + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        }
+        super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    private void processSelectedItems() {
+        final Set<Integer> selectedPositions = photoAdapter.getSelectedItems();
+        if (selectedPositions.isEmpty()) {
+            Toast.makeText(this, getString(R.string.please_select_photos), Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        ArrayList<DocumentPhotoManager.PhotoItem> selectedItems = new ArrayList<>();
+        for (Integer position : selectedPositions) {
+            selectedItems.add(photoItems.get(position));
+        }
+
+        switch (currentSelectionMode) {
+            case "pdf":
+                exportSelectedToPdf(selectedItems);
+                break;
+            case "png":
+                exportSelectedToPng(selectedItems);
+                break;
+            case "correct":
+                processSelectedDocuments(selectedItems);
+                break;
+            default:
+                Toast.makeText(this, "无效的选择模式", Toast.LENGTH_SHORT).show();
+                return;
+        }
+    }
+
+    private void exportSelectedToPdf(ArrayList<DocumentPhotoManager.PhotoItem> items) {
+        showExportProgress(true);
+        new Thread(() -> {
+            try {
+                for (DocumentPhotoManager.PhotoItem item : items) {
+                    File sourceFile = new File(item.getOriginalPath());
+                    if (!sourceFile.exists() || !sourceFile.canRead()) {
+                        throw new IOException("Source file not accessible: " + item.getOriginalPath());
+                    }
+                }
+
+                String outputPath = DocumentExporter.exportToPdf(this, items);
+                File outputFile = new File(outputPath);
+                if (!outputFile.exists() || !outputFile.canRead()) {
+                    throw new IOException("Output file not accessible: " + outputPath);
+                }
+
+                runOnUiThread(() -> {
+                    showExportProgress(false);
+                    showExportSuccess("PDF", outputPath);
+                    exitSelectionMode();
+                });
+            } catch (Exception e) {
+                Log.e(TAG, "PDF导出失败", e);
+                runOnUiThread(() -> {
+                    showExportProgress(false);
+                    Toast.makeText(this,
+                            getString(R.string.export_failed) + ": " + e.getMessage(),
+                            Toast.LENGTH_LONG).show();
+                    exitSelectionMode();
+                });
+            }
+        }).start();
+    }
+
+    private void exportSelectedToPng(ArrayList<DocumentPhotoManager.PhotoItem> items) {
+        showExportProgress(true);
+        new Thread(() -> {
+            try {
+                for (DocumentPhotoManager.PhotoItem item : items) {
+                    File sourceFile = new File(item.getOriginalPath());
+                    if (!sourceFile.exists() || !sourceFile.canRead()) {
+                        throw new IOException("Source file not accessible: " + item.getOriginalPath());
+                    }
+                }
+
+                String outputPathWithCount = DocumentExporter.exportToPng(this, items);
+                String[] parts = outputPathWithCount.split(":");
+                String outputPath = parts[0];
+                int successCount = parts.length > 1 ? Integer.parseInt(parts[1]) : 1;
+
+                File outputDir = new File(outputPath);
+                if (!outputDir.exists()) {
+                    throw new IOException("Output directory not accessible: " + outputPath);
+                }
+
+                runOnUiThread(() -> {
+                    showExportProgress(false);
+                    String message = getString(R.string.export_multiple_success, successCount);
+                    new MaterialAlertDialogBuilder(this)
+                            .setTitle(R.string.export_success)
+                            .setMessage(message)
+                            .setPositiveButton(R.string.share, (dialog, which) ->
+                                    shareFile(outputPath, "PNG"))
+                            .setNegativeButton(R.string.confirm, null)
+                            .show();
+                    exitSelectionMode();
+                });
+            } catch (Exception e) {
+                Log.e(TAG, "PNG导出失败", e);
+                runOnUiThread(() -> {
+                    showExportProgress(false);
+                    Toast.makeText(this,
+                            getString(R.string.export_failed) + ": " + e.getMessage(),
+                            Toast.LENGTH_LONG).show();
+                    exitSelectionMode();
+                });
+            }
+        }).start();
+    }
+
+    private void processSelectedDocuments(ArrayList<DocumentPhotoManager.PhotoItem> items) {
+        final Set<Integer> selectedPositions = photoAdapter.getSelectedItems();
+        showProcessingDialog();
+
+        new Thread(() -> {
+            try {
+                ArrayList<DocumentPhotoManager.PhotoItem> processedItems = new ArrayList<>();
+                for (DocumentPhotoManager.PhotoItem item : items) {
+                    try {
+                        File sourceFile = new File(item.getOriginalPath());
+                        if (!sourceFile.exists() || !sourceFile.canRead()) {
+                            throw new IOException("Source file not accessible: " + item.getOriginalPath());
+                        }
+
+                        DocumentProcessor.DocumentResult result =
+                                DocumentProcessor.processDocument(this, item.getOriginalPath());
+
+                        DocumentPhotoManager.PhotoItem processedItem = new DocumentPhotoManager.PhotoItem(
+                                result.processedPath,
+                                result.thumbnailPath,
+                                System.currentTimeMillis()
+                        );
+
+                        processedItems.add(processedItem);
+
+                        DocumentHistoryManager.HistoryItem historyItem =
+                                new DocumentHistoryManager.HistoryItem(
+                                        item.getOriginalPath(),
+                                        result.processedPath,
+                                        result.thumbnailPath,
+                                        System.currentTimeMillis()
+                                );
+                        DocumentHistoryManager.addHistory(this, historyItem);
+
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error processing document: " + item.getOriginalPath(), e);
+                        throw e;
+                    }
+                }
+
+                runOnUiThread(() -> {
+                    try {
+                        int processedIndex = 0;
+                        for (Integer position : selectedPositions) {
+                            if (processedIndex < processedItems.size()) {
+                                photoItems.set(position, processedItems.get(processedIndex++));
+                            }
+                        }
+
+                        photoAdapter.notifyDataSetChanged();
+                        Toast.makeText(this, R.string.process_all_success, Toast.LENGTH_SHORT).show();
+                    } finally {
+                        hideProcessingDialog();
+                        exitSelectionMode();
+                    }
+                });
+            } catch (Exception e) {
+                Log.e(TAG, "Error processing documents", e);
+                runOnUiThread(() -> {
+                    Toast.makeText(this,
+                            getString(R.string.process_failed) + ": " + e.getMessage(),
+                            Toast.LENGTH_LONG).show();
+                    hideProcessingDialog();
+                    exitSelectionMode();
+                });
+            }
+        }).start();
+    }
+
+    private void handleNewPhoto(String imagePath) {
         if (imagePath == null) {
             Log.e(TAG, "No image path provided");
             return;
@@ -160,7 +488,6 @@ public class DocumentActivity extends AppCompatActivity {
                 throw new IOException("Failed to create output directory");
             }
 
-            // 生成唯一文件名
             String timestamp = String.valueOf(System.currentTimeMillis());
             File destFile = new File(outputDir, "IMG_" + timestamp + ".jpg");
             copyFile(sourceFile, destFile);
@@ -169,17 +496,15 @@ public class DocumentActivity extends AppCompatActivity {
             new Thread(() -> {
                 try {
                     String thumbnailPath = createThumbnail(destFile.getAbsolutePath());
-                    DocumentPhotoManager.PhotoItem newItem = new DocumentPhotoManager.PhotoItem(
-                            destFile.getAbsolutePath(),
-                            thumbnailPath,
-                            System.currentTimeMillis()
-                    );
-
                     runOnUiThread(() -> {
                         try {
-                            photoItems.add(0, newItem);
-                            photoAdapter.notifyItemInserted(0);
-                            photoGrid.scrollToPosition(0);
+                            DocumentPhotoManager.PhotoItem newItem = new DocumentPhotoManager.PhotoItem(
+                                    destFile.getAbsolutePath(),
+                                    thumbnailPath,
+                                    System.currentTimeMillis()
+                            );
+                            photoItems.add(newItem); // 添加到列表末尾
+                            photoAdapter.notifyItemInserted(photoItems.size() - 1);
                             updatePhotoCount();
                         } finally {
                             showProcessing(false);
@@ -199,6 +524,14 @@ public class DocumentActivity extends AppCompatActivity {
             Log.e(TAG, "Error handling new photo", e);
             Toast.makeText(this, getString(R.string.process_failed) + ": " + e.getMessage(),
                     Toast.LENGTH_LONG).show();
+        }
+    }
+
+
+    private void handleNewPhoto(Intent intent) {
+        String imagePath = intent.getStringExtra("imagePath");
+        if (imagePath != null) {
+            handleNewPhoto(imagePath);
         }
     }
 
@@ -234,55 +567,6 @@ public class DocumentActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    private void showPhotoPreview(int position) {
-        if (isProcessing) return;
-
-        DocumentPhotoManager.PhotoItem item = photoItems.get(position);
-        Intent previewIntent = new Intent(this, PhotoPreviewActivity.class);
-        previewIntent.putExtra("photo_path", item.getOriginalPath());  // 使用原图路径
-        previewIntent.putExtra("position", photoItems.size() - position);
-        previewIntent.putExtra("total", photoItems.size());
-
-        // 开启预览活动
-        startActivity(previewIntent);
-        // 添加过渡动画
-        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
-    }
-
-    private void processAllDocuments() {
-        showProcessing(true);
-        new Thread(() -> {
-            try {
-                ArrayList<DocumentPhotoManager.PhotoItem> processedItems = new ArrayList<>();
-                for (DocumentPhotoManager.PhotoItem item : photoItems) {
-                    DocumentProcessor.DocumentResult result =
-                            DocumentProcessor.processDocument(this, item.getOriginalPath());
-                    processedItems.add(new DocumentPhotoManager.PhotoItem(
-                            result.processedPath,
-                            result.thumbnailPath,
-                            System.currentTimeMillis()
-                    ));
-                }
-
-                runOnUiThread(() -> {
-                    showProcessing(false);
-                    photoItems.clear();
-                    photoItems.addAll(processedItems);
-                    photoAdapter.notifyDataSetChanged();
-                    Toast.makeText(this, R.string.process_all_success, Toast.LENGTH_SHORT).show();
-                });
-            } catch (Exception e) {
-                Log.e(TAG, "Error processing documents", e);
-                runOnUiThread(() -> {
-                    showProcessing(false);
-                    Toast.makeText(this,
-                            getString(R.string.process_failed) + ": " + e.getMessage(),
-                            Toast.LENGTH_LONG).show();
-                });
-            }
-        }).start();
-    }
-
     private void confirmDeletePhoto(int position) {
         if (isProcessing) return;
 
@@ -306,48 +590,6 @@ public class DocumentActivity extends AppCompatActivity {
                 photoItems.size()));
     }
 
-    private void exportToPdf() {
-        showExportProgress(true);
-        new Thread(() -> {
-            try {
-                String outputPath = DocumentExporter.exportToPdf(this, photoItems);
-                runOnUiThread(() -> {
-                    showExportProgress(false);
-                    showExportSuccess("PDF", outputPath);
-                });
-            } catch (Exception e) {
-                Log.e(TAG, "PDF导出失败", e);
-                runOnUiThread(() -> {
-                    showExportProgress(false);
-                    Toast.makeText(this,
-                            getString(R.string.export_failed) + ": " + e.getMessage(),
-                            Toast.LENGTH_LONG).show();
-                });
-            }
-        }).start();
-    }
-
-    private void exportToPng() {
-        showExportProgress(true);
-        new Thread(() -> {
-            try {
-                String outputPath = DocumentExporter.exportToPng(this, photoItems);
-                runOnUiThread(() -> {
-                    showExportProgress(false);
-                    showExportSuccess("PNG", outputPath);
-                });
-            } catch (Exception e) {
-                Log.e(TAG, "PNG导出失败", e);
-                runOnUiThread(() -> {
-                    showExportProgress(false);
-                    Toast.makeText(this,
-                            getString(R.string.export_failed) + ": " + e.getMessage(),
-                            Toast.LENGTH_LONG).show();
-                });
-            }
-        }).start();
-    }
-
     private void showExportProgress(boolean show) {
         if (show && !isFinishing()) {
             progressDialog.show();
@@ -357,21 +599,115 @@ public class DocumentActivity extends AppCompatActivity {
     }
 
     private void showExportSuccess(String type, String path) {
+        File file = new File(path);
+        String message = file.isDirectory() ?
+                getString(R.string.export_multiple_success, file.listFiles() != null ? file.listFiles().length : 0) :
+                getString(R.string.export_success_message, type);
+
         new MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.export_success)
-                .setMessage(getString(R.string.export_success_message, type))
+                .setMessage(message)
                 .setPositiveButton(R.string.share, (dialog, which) -> shareFile(path, type))
                 .setNegativeButton(R.string.confirm, null)
                 .show();
     }
 
+    @Override
+    public void onPhotoClick(int position) {
+        // 直接调用 showPhotoPreview，不做预处理
+        showPhotoPreview(position);
+    }
+
+    @Override
+    public void onDeleteClick(int position) {
+        if (!isSelectionMode) {
+            confirmDeletePhoto(position);
+        }
+    }
+
+    @Override
+    public void onSelectionChanged(int selectedCount) {
+        updateSelectionUI(selectedCount);
+    }
+
+    private void updateSelectionUI(int selectedCount) {
+        if (isSelectionMode) {
+            View selectionControlsBar = findViewById(R.id.selectionControlsBar);
+            View actionButtons = findViewById(R.id.actionButtons);
+
+            selectionControlsBar.setVisibility(View.VISIBLE);
+            actionButtons.setVisibility(View.GONE);
+
+            confirmSelectionButton.setVisibility(View.VISIBLE);
+            confirmSelectionButton.setText(getString(R.string.selected_count, selectedCount));
+            confirmSelectionButton.setEnabled(selectedCount > 0);
+
+            String modeText = "";
+            switch (currentSelectionMode) {
+                case "pdf":
+                    modeText = getString(R.string.select_mode_pdf);
+                    break;
+                case "png":
+                    modeText = getString(R.string.select_mode_png);
+                    break;
+                case "correct":
+                    modeText = getString(R.string.select_mode_correct);
+                    break;
+            }
+            photoCountText.setText(modeText);
+        }
+    }
+
     private void shareFile(String path, String type) {
-        Intent shareIntent = new Intent(Intent.ACTION_SEND);
-        shareIntent.setType(type.equals("PDF") ? "application/pdf" : "image/*");
-        Uri contentUri = DocumentExporter.getContentUri(this, new File(path));
-        shareIntent.putExtra(Intent.EXTRA_STREAM, contentUri);
-        shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        startActivity(Intent.createChooser(shareIntent, getString(R.string.share_file)));
+        try {
+            File file = new File(path);
+            if (!file.exists()) {
+                Toast.makeText(this, "文件不存在", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            ArrayList<Uri> uris = new ArrayList<>();
+            if (file.isDirectory()) {
+                File[] files = file.listFiles((dir, name) ->
+                        name.toLowerCase().endsWith(".png") ||
+                                name.toLowerCase().endsWith(".jpg"));
+
+                if (files != null) {
+                    for (File imageFile : files) {
+                        Uri uri = FileProvider.getUriForFile(this,
+                                getPackageName() + ".provider",
+                                imageFile);
+                        uris.add(uri);
+                    }
+                }
+            } else {
+                Uri uri = FileProvider.getUriForFile(this,
+                        getPackageName() + ".provider",
+                        file);
+                uris.add(uri);
+            }
+
+            if (uris.isEmpty()) {
+                Toast.makeText(this, "没有可分享的文件", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            Intent shareIntent;
+            if (uris.size() > 1) {
+                shareIntent = new Intent(Intent.ACTION_SEND_MULTIPLE);
+                shareIntent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris);
+            } else {
+                shareIntent = new Intent(Intent.ACTION_SEND);
+                shareIntent.putExtra(Intent.EXTRA_STREAM, uris.get(0));
+            }
+
+            shareIntent.setType("image/*");
+            shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(Intent.createChooser(shareIntent, getString(R.string.share_file)));
+        } catch (Exception e) {
+            Log.e(TAG, "分享文件失败", e);
+            Toast.makeText(this, "分享失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
@@ -383,7 +719,7 @@ public class DocumentActivity extends AppCompatActivity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        setIntent(intent); // 确保更新当前intent
+        setIntent(intent);
         if (intent.hasExtra("imagePath")) {
             handleNewPhoto(intent);
         }
@@ -392,11 +728,20 @@ public class DocumentActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (instance == this) {
+            instance = null;
+        }
         if (progressDialog != null && progressDialog.isShowing()) {
             progressDialog.dismiss();
         }
         if (processingDialog != null && processingDialog.isShowing()) {
             processingDialog.dismiss();
+        }
+    }
+
+    public static void addNewPhoto(String imagePath) {
+        if (instance != null) {
+            instance.handleNewPhoto(imagePath);
         }
     }
 
