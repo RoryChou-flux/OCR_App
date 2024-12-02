@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- 左侧数学符号 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M4,4h6v2h-2v12h2v2h-6v-2h2v-12h-2z" />
+
+    <!-- 右侧文档符号 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M14,4v2h6v12h-6v2h8v-16z" />
+
+    <!-- 中间的箭头 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,7l-1.5,1.5l2.5,2.5l-2.5,2.5l1.5,1.5l4-4z" />
+
+</vector>

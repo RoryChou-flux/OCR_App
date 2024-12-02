@@ -182,7 +182,7 @@ public class CameraActivity extends AppCompatActivity {
         try {
             Log.d(TAG, "Handling captured image: " + imageUri);
             String mode = getIntent().getStringExtra("mode");
-            Intent intent = new Intent(this, CropActivity.class);
+            Intent intent = new Intent(this, DocumentCropActivity.class);
             intent.putExtra("sourceUri", imageUri);
             intent.putExtra("mode", mode);
             cropLauncher.launch(intent);
@@ -256,7 +256,7 @@ public class CameraActivity extends AppCompatActivity {
         if (!pendingImages.isEmpty()) {
             Uri imageUri = pendingImages.poll(); // 获取并移除队列头部的URI
             String mode = getIntent().getStringExtra("mode");
-            Intent intent = new Intent(this, CropActivity.class);
+            Intent intent = new Intent(this, DocumentCropActivity.class);
             intent.putExtra("sourceUri", imageUri);
             intent.putExtra("mode", mode);
             cropLauncher.launch(intent);

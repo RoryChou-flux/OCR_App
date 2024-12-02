@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
+import android.net.Uri;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
@@ -26,6 +27,7 @@ import java.io.IOException;
 
 public class PhotoPreviewActivity extends AppCompatActivity {
     private static final String TAG = "PhotoPreviewActivity";
+    private static final int REQUEST_CROP = 1002;
 
     private View topBar;
     private View bottomBar;
@@ -139,53 +141,37 @@ public class PhotoPreviewActivity extends AppCompatActivity {
     private void processDocument() {
         if (isProcessing || currentPhotoPath == null) return;
 
-        isProcessing = true;
-        showProcessingDialog();
+        Intent cropIntent = new Intent(this, DocumentCropActivity.class);
+        cropIntent.putExtra("sourceUri", Uri.fromFile(new File(currentPhotoPath)));
+        startActivityForResult(cropIntent, REQUEST_CROP);
+    }
 
-        new Thread(() -> {
-            try {
-                DocumentProcessor.DocumentResult result =
-                        DocumentProcessor.processDocument(this, currentPhotoPath);
+    // 在 PhotoPreviewActivity 中：
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
 
-                File processedFile = new File(result.processedPath);
-                if (!processedFile.exists() || !processedFile.canRead()) {
-                    throw new IOException("Processed file not accessible: " + result.processedPath);
-                }
+        if (requestCode == REQUEST_CROP && resultCode == RESULT_OK && data != null) {
+            String processedPath = data.getStringExtra("imagePath");
+            String thumbnailPath = data.getStringExtra("thumbnailPath");
 
-                // 更新 currentPhotoPath
-                currentPhotoPath = result.processedPath;
-
-                runOnUiThread(() -> {
-                    try {
-                        // 重新加载图片
-                        loadImage();
-
-                        // 返回处理结果
-                        Intent resultIntent = new Intent();
-                        resultIntent.putExtra("processed_path", currentPhotoPath);
-                        resultIntent.putExtra("thumbnail_path", result.thumbnailPath);
-                        resultIntent.putExtra("original_path", originalPhotoPath); // 返回原始路径
-                        setResult(RESULT_OK, resultIntent);
-
-                        Toast.makeText(this, R.string.process_success, Toast.LENGTH_SHORT).show();
-                    } catch (Exception e) {
-                        Log.e(TAG, "Error updating UI after processing", e);
-                        Toast.makeText(this, "更新界面失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    } finally {
-                        hideProcessingDialog();
-                    }
-                });
-            } catch (Exception e) {
-                Log.e(TAG, "Error processing document", e);
-                runOnUiThread(() -> {
-                    Toast.makeText(this, getString(R.string.process_failed) + ": " + e.getMessage(),
-                            Toast.LENGTH_SHORT).show();
-                    hideProcessingDialog();
-                });
-            } finally {
-                isProcessing = false;
+            if (processedPath != null) {
+                Log.d(TAG, "Received crop result: " + processedPath);
+                // 更新当前路径
+                currentPhotoPath = processedPath;
+                // 重新加载图片
+                loadImage();
+                // 返回处理结果
+                Intent resultIntent = new Intent();
+                resultIntent.putExtra("processed_path", processedPath);
+                resultIntent.putExtra("thumbnail_path", thumbnailPath);
+                resultIntent.putExtra("original_path", originalPhotoPath);
+                setResult(RESULT_OK, resultIntent);
+            } else {
+                Log.e(TAG, "No processed path in result");
+                Toast.makeText(this, R.string.process_failed, Toast.LENGTH_SHORT).show();
             }
-        }).start();
+        }
     }
 
     private void loadImage() {

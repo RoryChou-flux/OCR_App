@@ -52,7 +52,6 @@ android {
 
 dependencies {
 
-    implementation(project(":opencv")) // 根据你导入的 OpenCV 模块的实际名称
     // 已有的 CameraX 相关依赖
     implementation("androidx.camera:camera-core:1.3.4")
     implementation("androidx.camera:camera-camera2:1.3.4")
@@ -70,7 +69,8 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1") // Gson JSON处理
 
     // 图片处理
-    implementation("com.github.bumptech.glide:glide:4.16.0") // 图片加载
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+    implementation(project(":opencv")) // 图片加载
     annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
 
     // UI组件
@@ -89,6 +89,15 @@ dependencies {
     implementation("com.github.bumptech.glide:glide:4.15.1")
     annotationProcessor("com.github.bumptech.glide:compiler:4.15.1")
     implementation ("com.github.chrisbanes:PhotoView:2.3.0")
+
+    // Latex
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.google.code.gson:gson:2.10.1")
+    implementation("com.github.yalantis:ucrop:2.2.8")
+    // Compressor 库，降级到 2.1.1 版本
+    implementation("id.zelory:compressor:2.1.1")
+    implementation("com.vanniktech:android-image-cropper:4.6.0")
 
 
 

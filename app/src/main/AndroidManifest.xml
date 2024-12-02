@@ -72,6 +72,10 @@
             android:theme="@style/Theme.Vision.NoActionBar" />
 
         <activity
+            android:name="com.canhub.cropper.CropImageActivity"
+            android:theme="@style/Theme.AppCompat"/>
+
+        <activity
             android:name=".PhotoPreviewActivity"
             android:configChanges="orientation|screenSize"
             android:screenOrientation="unspecified"
@@ -79,7 +83,7 @@
 
         <!-- 裁剪活动 -->
         <activity
-            android:name=".CropActivity"
+            android:name=".DocumentCropActivity"
             android:configChanges="orientation|screenSize"
             android:screenOrientation="unspecified"
             android:theme="@style/Theme.Vision.NoActionBar" />

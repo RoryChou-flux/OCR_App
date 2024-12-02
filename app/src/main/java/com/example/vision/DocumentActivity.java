@@ -1,11 +1,17 @@
 package com.example.vision;
+
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.PointF;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -22,14 +28,16 @@ import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Set;
+import java.lang.ref.WeakReference;
 
 public class DocumentActivity extends AppCompatActivity implements PhotoAdapter.PhotoActionListener {
     private static final String TAG = "DocumentActivity";
-    private static DocumentActivity instance;
+    private static WeakReference<DocumentActivity> instanceRef;
+
     private RecyclerView photoGrid;
     private PhotoAdapter photoAdapter;
-    private final ArrayList<DocumentPhotoManager.PhotoItem> photoItems = new ArrayList<>();
     private TextView photoCountText;
+    private final ArrayList<DocumentPhotoManager.PhotoItem> photoItems = new ArrayList<>();
     private AlertDialog progressDialog;
     private AlertDialog processingDialog;
     private View processingProgress;
@@ -40,17 +48,20 @@ public class DocumentActivity extends AppCompatActivity implements PhotoAdapter.
     private MaterialButton cancelSelectionButton;
     private MaterialButton confirmSelectionButton;
     private boolean isSelectionMode = false;
-    private static final int REQUEST_PREVIEW = 1001;
+
+    private ActivityResultLauncher<Intent> previewLauncher;
 
     public static DocumentActivity getInstance() {
-        return instance;
+        return instanceRef != null ? instanceRef.get() : null;
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_document);
-        instance = this;
+        instanceRef = new WeakReference<>(this);
+
+        initActivityResult();
 
         if (savedInstanceState != null) {
             ArrayList<DocumentPhotoManager.PhotoItem> savedItems =
@@ -70,6 +81,17 @@ public class DocumentActivity extends AppCompatActivity implements PhotoAdapter.
         }
     }
 
+    private void initActivityResult() {
+        previewLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        handlePreviewResult(result.getData());
+                    }
+                }
+        );
+    }
+
     private void initViews() {
         photoGrid = findViewById(R.id.photoGrid);
         processingProgress = findViewById(R.id.processingProgress);
@@ -77,10 +99,8 @@ public class DocumentActivity extends AppCompatActivity implements PhotoAdapter.
         cancelSelectionButton = findViewById(R.id.cancelSelectionButton);
         confirmSelectionButton = findViewById(R.id.confirmSelectionButton);
 
-        // 初始化 LinearLayoutManager
         LinearLayoutManager layoutManager = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
         photoGrid.setLayoutManager(layoutManager);
-
 
         photoAdapter = new PhotoAdapter(photoItems, this);
         photoGrid.setAdapter(photoAdapter);
@@ -144,6 +164,31 @@ public class DocumentActivity extends AppCompatActivity implements PhotoAdapter.
         });
     }
 
+    private void initProgressDialogs() {
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this)
+                .setView(R.layout.dialog_processing)
+                .setCancelable(false);
+
+        progressDialog = builder.create();
+        processingDialog = builder.create();
+    }
+
+    private void showProcessingDialog() {
+        runOnUiThread(() -> {
+            if (!isFinishing() && progressDialog != null) {
+                progressDialog.show();
+            }
+        });
+    }
+
+    private void hideProcessingDialog() {
+        runOnUiThread(() -> {
+            if (progressDialog != null && progressDialog.isShowing()) {
+                progressDialog.dismiss();
+            }
+        });
+    }
+
     private void initSelectionControls() {
         selectAllButton.setOnClickListener(v -> photoAdapter.selectAll());
         cancelSelectionButton.setOnClickListener(v -> exitSelectionMode());
@@ -177,49 +222,60 @@ public class DocumentActivity extends AppCompatActivity implements PhotoAdapter.
         cancelSelectionButton.setVisibility(showSelection ? View.VISIBLE : View.GONE);
     }
 
-    private void initProgressDialogs() {
-        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this)
-                .setView(R.layout.dialog_processing)
-                .setCancelable(false);
+    private void handlePreviewResult(Intent data) {
+        try {
+            String processedPath = data.getStringExtra("processed_path");
+            String thumbnailPath = data.getStringExtra("thumbnail_path");
+            String originalPath = data.getStringExtra("original_path");
 
-        progressDialog = builder.create();
-        processingDialog = builder.create();
-    }
-
-    private void showProcessingDialog() {
-        if (progressDialog == null) {
-            progressDialog = new MaterialAlertDialogBuilder(this)
-                    .setView(R.layout.dialog_processing)
-                    .setCancelable(false)
-                    .create();
+            if (originalPath != null && processedPath != null) {
+                int position = findPhotoPosition(originalPath);
+                if (position != -1) {
+                    updatePhotoItem(position, processedPath, thumbnailPath);
+                } else {
+                    Log.e(TAG, "Original path not found in photoItems: " + originalPath);
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error updating preview result", e);
+            Toast.makeText(this, "更新预览结果失败：" + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
-        runOnUiThread(() -> {
-            if (!isFinishing() && progressDialog != null) {
-                progressDialog.show();
-            }
-        });
     }
 
-    private void hideProcessingDialog() {
-        runOnUiThread(() -> {
-            if (progressDialog != null && progressDialog.isShowing()) {
-                progressDialog.dismiss();
+    private int findPhotoPosition(String originalPath) {
+        for (int i = 0; i < photoItems.size(); i++) {
+            if (photoItems.get(i).getOriginalPath().equals(originalPath)) {
+                return i;
             }
-        });
+        }
+        return -1;
     }
 
-    // 在DocumentActivity中
+    private void updatePhotoItem(int position, String processedPath, String thumbnailPath) {
+        DocumentPhotoManager.PhotoItem oldItem = photoItems.get(position);
+        DocumentPhotoManager.PhotoItem newItem = new DocumentPhotoManager.PhotoItem(
+                processedPath,
+                thumbnailPath != null ? thumbnailPath : oldItem.getThumbnailPath(),
+                System.currentTimeMillis()
+        );
+
+        photoItems.set(position, newItem);
+        photoAdapter.notifyItemChanged(position);
+
+        DocumentHistoryManager.HistoryItem historyItem = new DocumentHistoryManager.HistoryItem(
+                oldItem.getOriginalPath(),
+                processedPath,
+                thumbnailPath,
+                System.currentTimeMillis()
+        );
+        DocumentHistoryManager.addHistory(this, historyItem);
+    }
+
     private void showPhotoPreview(int position) {
         if (isProcessing) return;
 
         try {
-            if (position < 0 || position >= photoItems.size()) {
-                Log.e(TAG, "Invalid position: " + position);
-                return;
-            }
-
             DocumentPhotoManager.PhotoItem item = photoItems.get(position);
-
             File photoFile = new File(item.getOriginalPath());
             if (!photoFile.exists() || !photoFile.canRead()) {
                 Toast.makeText(this, "无法访问图片文件", Toast.LENGTH_SHORT).show();
@@ -229,68 +285,15 @@ public class DocumentActivity extends AppCompatActivity implements PhotoAdapter.
             Intent previewIntent = new Intent(this, PhotoPreviewActivity.class);
             previewIntent.putExtra("photo_path", item.getOriginalPath());
             previewIntent.putExtra("original_path", item.getOriginalPath());
-            previewIntent.putExtra("position", position); // 传递当前位置
-            previewIntent.putExtra("total", photoItems.size()); // 传递总的图片数量
+            previewIntent.putExtra("position", position);
+            previewIntent.putExtra("total", photoItems.size());
 
-            startActivityForResult(previewIntent, REQUEST_PREVIEW);
+            previewLauncher.launch(previewIntent);
             overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
-
         } catch (Exception e) {
             Log.e(TAG, "Error showing preview", e);
             Toast.makeText(this, "无法显示预览：" + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_PREVIEW && resultCode == RESULT_OK && data != null) {
-            try {
-                String processedPath = data.getStringExtra("processed_path");
-                String thumbnailPath = data.getStringExtra("thumbnail_path");
-                String originalPath = data.getStringExtra("original_path");
-
-                if (originalPath != null && processedPath != null) {
-                    int position = -1;
-                    for (int i = 0; i < photoItems.size(); i++) {
-                        if (photoItems.get(i).getOriginalPath().equals(originalPath)) {
-                            position = i;
-                            break;
-                        }
-                    }
-
-                    if (position != -1) {
-                        DocumentPhotoManager.PhotoItem oldItem = photoItems.get(position);
-
-                        // 创建新的 PhotoItem，保留原有的 pageNumber
-                        DocumentPhotoManager.PhotoItem newItem = new DocumentPhotoManager.PhotoItem(
-                                processedPath,
-                                thumbnailPath != null ? thumbnailPath : oldItem.getThumbnailPath(),
-                                System.currentTimeMillis()
-                        );
-
-                        // 替换列表中的旧项
-                        photoItems.set(position, newItem);
-                        photoAdapter.notifyItemChanged(position);
-
-                        // 添加到历史记录
-                        DocumentHistoryManager.HistoryItem historyItem =
-                                new DocumentHistoryManager.HistoryItem(
-                                        originalPath,
-                                        processedPath,
-                                        thumbnailPath,
-                                        System.currentTimeMillis()
-                                );
-                        DocumentHistoryManager.addHistory(this, historyItem);
-                    } else {
-                        Log.e(TAG, "Original path not found in photoItems: " + originalPath);
-                    }
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Error updating preview result", e);
-                Toast.makeText(this, "更新预览结果失败：" + e.getMessage(), Toast.LENGTH_SHORT).show();
-            }
-        }
-        super.onActivityResult(requestCode, resultCode, data);
     }
 
     private void processSelectedItems() {
@@ -305,20 +308,89 @@ public class DocumentActivity extends AppCompatActivity implements PhotoAdapter.
             selectedItems.add(photoItems.get(position));
         }
 
-        switch (currentSelectionMode) {
-            case "pdf":
-                exportSelectedToPdf(selectedItems);
-                break;
-            case "png":
-                exportSelectedToPng(selectedItems);
-                break;
-            case "correct":
-                processSelectedDocuments(selectedItems);
-                break;
-            default:
-                Toast.makeText(this, "无效的选择模式", Toast.LENGTH_SHORT).show();
-                return;
+        if ("pdf".equals(currentSelectionMode)) {
+            exportSelectedToPdf(selectedItems);
+        } else if ("png".equals(currentSelectionMode)) {
+            exportSelectedToPng(selectedItems);
+        } else if ("correct".equals(currentSelectionMode)) {
+            processSelectedDocuments(selectedItems);
+        } else {
+            Toast.makeText(this, "无效的选择模式", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void processSelectedDocuments(ArrayList<DocumentPhotoManager.PhotoItem> items) {
+        final Set<Integer> selectedPositions = photoAdapter.getSelectedItems();
+        showProcessingDialog();
+
+        new Thread(() -> {
+            try {
+                ArrayList<DocumentPhotoManager.PhotoItem> processedItems = new ArrayList<>();
+                for (DocumentPhotoManager.PhotoItem item : items) {
+                    File sourceFile = new File(item.getOriginalPath());
+                    if (!sourceFile.exists() || !sourceFile.canRead()) {
+                        throw new IOException("Source file not accessible: " + item.getOriginalPath());
+                    }
+
+                    // 创建默认的四个角点
+                    Bitmap bitmap = BitmapFactory.decodeFile(item.getOriginalPath());
+                    if (bitmap != null) {
+                        try {
+                            float width = bitmap.getWidth();
+                            float height = bitmap.getHeight();
+                            PointF[] corners = new PointF[] {
+                                    new PointF(0, 0),
+                                    new PointF(width, 0),
+                                    new PointF(width, height),
+                                    new PointF(0, height)
+                            };
+
+                            Uri sourceUri = Uri.fromFile(sourceFile);
+                            DocumentProcessor.DocumentResult result =
+                                    DocumentProcessor.processDocument(this, sourceUri, corners);
+
+                            processedItems.add(new DocumentPhotoManager.PhotoItem(
+                                    result.processedPath,
+                                    result.thumbnailPath,
+                                    System.currentTimeMillis()
+                            ));
+
+                            DocumentHistoryManager.addHistory(this, new DocumentHistoryManager.HistoryItem(
+                                    item.getOriginalPath(),
+                                    result.processedPath,
+                                    result.thumbnailPath,
+                                    System.currentTimeMillis()
+                            ));
+                        } finally {
+                            bitmap.recycle();
+                        }
+                    }
+                }
+
+                runOnUiThread(() -> {
+                    try {
+                        int processedIndex = 0;
+                        for (Integer position : selectedPositions) {
+                            if (processedIndex < processedItems.size()) {
+                                photoItems.set(position, processedItems.get(processedIndex++));
+                            }
+                        }
+                        photoAdapter.notifyDataSetChanged();
+                        Toast.makeText(this, R.string.process_all_success, Toast.LENGTH_SHORT).show();
+                    } finally {hideProcessingDialog();
+                        exitSelectionMode();
+                    }
+                });
+            } catch (Exception e) {
+                Log.e(TAG, "Error processing documents", e);
+                runOnUiThread(() -> {
+                    Toast.makeText(this, getString(R.string.process_failed) + ": " + e.getMessage(),
+                            Toast.LENGTH_LONG).show();
+                    hideProcessingDialog();
+                    exitSelectionMode();
+                });
+            }
+        }).start();
     }
 
     private void exportSelectedToPdf(ArrayList<DocumentPhotoManager.PhotoItem> items) {
@@ -402,75 +474,6 @@ public class DocumentActivity extends AppCompatActivity implements PhotoAdapter.
         }).start();
     }
 
-    private void processSelectedDocuments(ArrayList<DocumentPhotoManager.PhotoItem> items) {
-        final Set<Integer> selectedPositions = photoAdapter.getSelectedItems();
-        showProcessingDialog();
-
-        new Thread(() -> {
-            try {
-                ArrayList<DocumentPhotoManager.PhotoItem> processedItems = new ArrayList<>();
-                for (DocumentPhotoManager.PhotoItem item : items) {
-                    try {
-                        File sourceFile = new File(item.getOriginalPath());
-                        if (!sourceFile.exists() || !sourceFile.canRead()) {
-                            throw new IOException("Source file not accessible: " + item.getOriginalPath());
-                        }
-
-                        DocumentProcessor.DocumentResult result =
-                                DocumentProcessor.processDocument(this, item.getOriginalPath());
-
-                        DocumentPhotoManager.PhotoItem processedItem = new DocumentPhotoManager.PhotoItem(
-                                result.processedPath,
-                                result.thumbnailPath,
-                                System.currentTimeMillis()
-                        );
-
-                        processedItems.add(processedItem);
-
-                        DocumentHistoryManager.HistoryItem historyItem =
-                                new DocumentHistoryManager.HistoryItem(
-                                        item.getOriginalPath(),
-                                        result.processedPath,
-                                        result.thumbnailPath,
-                                        System.currentTimeMillis()
-                                );
-                        DocumentHistoryManager.addHistory(this, historyItem);
-
-                    } catch (Exception e) {
-                        Log.e(TAG, "Error processing document: " + item.getOriginalPath(), e);
-                        throw e;
-                    }
-                }
-
-                runOnUiThread(() -> {
-                    try {
-                        int processedIndex = 0;
-                        for (Integer position : selectedPositions) {
-                            if (processedIndex < processedItems.size()) {
-                                photoItems.set(position, processedItems.get(processedIndex++));
-                            }
-                        }
-
-                        photoAdapter.notifyDataSetChanged();
-                        Toast.makeText(this, R.string.process_all_success, Toast.LENGTH_SHORT).show();
-                    } finally {
-                        hideProcessingDialog();
-                        exitSelectionMode();
-                    }
-                });
-            } catch (Exception e) {
-                Log.e(TAG, "Error processing documents", e);
-                runOnUiThread(() -> {
-                    Toast.makeText(this,
-                            getString(R.string.process_failed) + ": " + e.getMessage(),
-                            Toast.LENGTH_LONG).show();
-                    hideProcessingDialog();
-                    exitSelectionMode();
-                });
-            }
-        }).start();
-    }
-
     private void handleNewPhoto(String imagePath) {
         if (imagePath == null) {
             Log.e(TAG, "No image path provided");
@@ -484,7 +487,7 @@ public class DocumentActivity extends AppCompatActivity implements PhotoAdapter.
             }
 
             File outputDir = new File(getFilesDir(), "documents");
-            if (!outputDir.exists() && !outputDir.mkdirs()) {
+            if (!createDirectoryIfNeeded(outputDir)) {
                 throw new IOException("Failed to create output directory");
             }
 
@@ -503,7 +506,7 @@ public class DocumentActivity extends AppCompatActivity implements PhotoAdapter.
                                     thumbnailPath,
                                     System.currentTimeMillis()
                             );
-                            photoItems.add(newItem); // 添加到列表末尾
+                            photoItems.add(newItem);
                             photoAdapter.notifyItemInserted(photoItems.size() - 1);
                             updatePhotoCount();
                         } finally {
@@ -519,19 +522,10 @@ public class DocumentActivity extends AppCompatActivity implements PhotoAdapter.
                     });
                 }
             }).start();
-
         } catch (IOException e) {
             Log.e(TAG, "Error handling new photo", e);
             Toast.makeText(this, getString(R.string.process_failed) + ": " + e.getMessage(),
                     Toast.LENGTH_LONG).show();
-        }
-    }
-
-
-    private void handleNewPhoto(Intent intent) {
-        String imagePath = intent.getStringExtra("imagePath");
-        if (imagePath != null) {
-            handleNewPhoto(imagePath);
         }
     }
 
@@ -543,22 +537,24 @@ public class DocumentActivity extends AppCompatActivity implements PhotoAdapter.
     }
 
     private void copyFile(File source, File dest) throws IOException {
-        try (FileChannel sourceChannel = new FileInputStream(source).getChannel();
-             FileChannel destChannel = new FileOutputStream(dest).getChannel()) {
+        try (FileInputStream fis = new FileInputStream(source);
+             FileOutputStream fos = new FileOutputStream(dest);
+             FileChannel sourceChannel = fis.getChannel();
+             FileChannel destChannel = fos.getChannel()) {
             destChannel.transferFrom(sourceChannel, 0, sourceChannel.size());
         }
     }
 
     private String createThumbnail(String originalPath) throws Exception {
         File outputDir = new File(getFilesDir(), "thumbnails");
-        if (!outputDir.exists()) {
-            outputDir.mkdirs();
+        if (!createDirectoryIfNeeded(outputDir)) {
+            throw new IOException("Failed to create thumbnails directory");
         }
 
         String thumbnailPath = new File(outputDir,
                 "thumb_" + System.currentTimeMillis() + ".jpg").getAbsolutePath();
 
-        return DocumentProcessor.createThumbnail(this, originalPath, thumbnailPath);
+        return DocumentProcessor.processThumbnail(this, originalPath, thumbnailPath);  // 修改这里
     }
 
     private void startCamera() {
@@ -593,7 +589,7 @@ public class DocumentActivity extends AppCompatActivity implements PhotoAdapter.
     private void showExportProgress(boolean show) {
         if (show && !isFinishing()) {
             progressDialog.show();
-        } else if (progressDialog.isShowing()) {
+        } else if (progressDialog != null && progressDialog.isShowing()) {
             progressDialog.dismiss();
         }
     }
@@ -612,53 +608,7 @@ public class DocumentActivity extends AppCompatActivity implements PhotoAdapter.
                 .show();
     }
 
-    @Override
-    public void onPhotoClick(int position) {
-        // 直接调用 showPhotoPreview，不做预处理
-        showPhotoPreview(position);
-    }
-
-    @Override
-    public void onDeleteClick(int position) {
-        if (!isSelectionMode) {
-            confirmDeletePhoto(position);
-        }
-    }
-
-    @Override
-    public void onSelectionChanged(int selectedCount) {
-        updateSelectionUI(selectedCount);
-    }
-
-    private void updateSelectionUI(int selectedCount) {
-        if (isSelectionMode) {
-            View selectionControlsBar = findViewById(R.id.selectionControlsBar);
-            View actionButtons = findViewById(R.id.actionButtons);
-
-            selectionControlsBar.setVisibility(View.VISIBLE);
-            actionButtons.setVisibility(View.GONE);
-
-            confirmSelectionButton.setVisibility(View.VISIBLE);
-            confirmSelectionButton.setText(getString(R.string.selected_count, selectedCount));
-            confirmSelectionButton.setEnabled(selectedCount > 0);
-
-            String modeText = "";
-            switch (currentSelectionMode) {
-                case "pdf":
-                    modeText = getString(R.string.select_mode_pdf);
-                    break;
-                case "png":
-                    modeText = getString(R.string.select_mode_png);
-                    break;
-                case "correct":
-                    modeText = getString(R.string.select_mode_correct);
-                    break;
-            }
-            photoCountText.setText(modeText);
-        }
-    }
-
-    private void shareFile(String path, String type) {
+    private void shareFile(@NonNull String path, @NonNull String type) {
         try {
             File file = new File(path);
             if (!file.exists()) {
@@ -668,16 +618,16 @@ public class DocumentActivity extends AppCompatActivity implements PhotoAdapter.
 
             ArrayList<Uri> uris = new ArrayList<>();
             if (file.isDirectory()) {
-                File[] files = file.listFiles((dir, name) ->
-                        name.toLowerCase().endsWith(".png") ||
-                                name.toLowerCase().endsWith(".jpg"));
-
+                File[] files = file.listFiles();
                 if (files != null) {
                     for (File imageFile : files) {
-                        Uri uri = FileProvider.getUriForFile(this,
-                                getPackageName() + ".provider",
-                                imageFile);
-                        uris.add(uri);
+                        String name = imageFile.getName().toLowerCase();
+                        if (name.endsWith(".png") || name.endsWith(".jpg")) {
+                            Uri uri = FileProvider.getUriForFile(this,
+                                    getPackageName() + ".provider",
+                                    imageFile);
+                            uris.add(uri);
+                        }
                     }
                 }
             } else {
@@ -710,6 +660,61 @@ public class DocumentActivity extends AppCompatActivity implements PhotoAdapter.
         }
     }
 
+    private boolean createDirectoryIfNeeded(File dir) {
+        return dir.exists() || dir.mkdirs();
+    }
+
+    @Override
+    public void onPhotoClick(int position) {
+        showPhotoPreview(position);
+    }
+
+    @Override
+    public void onDeleteClick(int position) {
+        if (!isSelectionMode) {
+            confirmDeletePhoto(position);
+        }
+    }
+
+    @Override
+    public void onSelectionChanged(int selectedCount) {
+        updateSelectionUI(selectedCount);
+    }
+
+    private void updateSelectionUI(int selectedCount) {
+        if (isSelectionMode) {
+            View selectionControlsBar = findViewById(R.id.selectionControlsBar);
+            View actionButtons = findViewById(R.id.actionButtons);
+
+            selectionControlsBar.setVisibility(View.VISIBLE);
+            actionButtons.setVisibility(View.GONE);
+
+            confirmSelectionButton.setVisibility(View.VISIBLE);
+            confirmSelectionButton.setText(getString(R.string.selected_count, selectedCount));
+            confirmSelectionButton.setEnabled(selectedCount > 0);
+
+            // 替换 switch 表达式
+            String modeText;
+            if (currentSelectionMode != null) {
+                switch (currentSelectionMode) {
+                    case "pdf":
+                        modeText = getString(R.string.select_mode_pdf);
+                        break;
+                    case "png":
+                        modeText = getString(R.string.select_mode_png);
+                        break;
+                    case "correct":
+                        modeText = getString(R.string.select_mode_correct);
+                        break;
+                    default:
+                        modeText = "";
+                        break;
+                }
+                photoCountText.setText(modeText);
+            }
+        }
+    }
+
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
@@ -721,15 +726,16 @@ public class DocumentActivity extends AppCompatActivity implements PhotoAdapter.
         super.onNewIntent(intent);
         setIntent(intent);
         if (intent.hasExtra("imagePath")) {
-            handleNewPhoto(intent);
+            handleNewPhoto(intent.getStringExtra("imagePath"));
         }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (instance == this) {
-            instance = null;
+        if (instanceRef != null && instanceRef.get() == this) {
+            instanceRef.clear();
+            instanceRef = null;
         }
         if (progressDialog != null && progressDialog.isShowing()) {
             progressDialog.dismiss();
@@ -739,23 +745,28 @@ public class DocumentActivity extends AppCompatActivity implements PhotoAdapter.
         }
     }
 
-    public static void addNewPhoto(String imagePath) {
-        if (instance != null) {
-            instance.handleNewPhoto(imagePath);
+    @Override
+    public void onBackPressed() {
+        if (!isSelectionMode) {
+            if (!photoItems.isEmpty() && !isProcessing) {
+                new MaterialAlertDialogBuilder(this)
+                        .setTitle(R.string.cancel)
+                        .setMessage("是否确定退出？当前拍摄的照片将会保存。")
+                        .setPositiveButton(R.string.confirm, (dialog, which) -> finish())
+                        .setNegativeButton(R.string.cancel, null)
+                        .show();
+            } else {
+                super.onBackPressed();
+            }
+        } else {
+            exitSelectionMode();
         }
     }
 
-    @Override
-    public void onBackPressed() {
-        if (!photoItems.isEmpty() && !isProcessing) {
-            new MaterialAlertDialogBuilder(this)
-                    .setTitle(R.string.cancel)
-                    .setMessage("是否确定退出？当前拍摄的照片将会保存。")
-                    .setPositiveButton(R.string.confirm, (dialog, which) -> finish())
-                    .setNegativeButton(R.string.cancel, null)
-                    .show();
-        } else {
-            super.onBackPressed();
+    public static void addNewPhoto(String imagePath) {
+        DocumentActivity instance = getInstance();
+        if (instance != null) {
+            instance.handleNewPhoto(imagePath);
         }
     }
 }
