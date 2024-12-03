@@ -29,9 +29,14 @@ public class DocumentProcessor {
     }
 
     public static DocumentResult processDocument(@NonNull Context context, @NonNull Uri sourceUri, @NonNull PointF[] corners) throws IOException {
-        File outputDir = new File(context.getFilesDir(), "processed_documents");
-        if (!outputDir.exists() && !outputDir.mkdirs()) {
-            throw new IOException("Cannot create output directory");
+        File processedDir = new File(context.getFilesDir(), "documents");
+        File thumbnailDir = new File(context.getFilesDir(), "thumbnails");
+
+        if (!processedDir.exists() && !processedDir.mkdirs()) {
+            throw new IOException("Cannot create processed directory");
+        }
+        if (!thumbnailDir.exists() && !thumbnailDir.mkdirs()) {
+            throw new IOException("Cannot create thumbnail directory");
         }
 
         Mat originalMat = null;
@@ -76,8 +81,8 @@ public class DocumentProcessor {
 
             // 保存处理后的图片
             String timestamp = String.valueOf(System.currentTimeMillis());
-            File processedFile = new File(outputDir, "SCAN_" + timestamp + ".jpg");
-            File thumbnailFile = new File(outputDir, "THUMB_" + timestamp + ".jpg");
+            File processedFile = new File(processedDir, "SCAN_" + timestamp + ".jpg");
+            File thumbnailFile = new File(thumbnailDir, "THUMB_" + timestamp + ".jpg");
 
             // 保存处理后的图片
             saveImage(resultBitmap, processedFile, 95);

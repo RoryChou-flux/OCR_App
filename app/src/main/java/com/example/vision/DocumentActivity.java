@@ -316,48 +316,30 @@ public class DocumentActivity extends AppCompatActivity implements PhotoAdapter.
         }).start();
     }
 
-    private void handlePreviewResult(@NonNull Intent data) {
+    private void handlePreviewResult(Intent data) {
         try {
-            // 首先获取所有可能的路径
+            // 获取传递过来的所有路径
             String originalFile = data.getStringExtra("original_file");
             String processedPath = data.getStringExtra("processed_file");
             String thumbnailPath = data.getStringExtra("thumbnail_path");
             String legacyPath = data.getStringExtra("imagePath");  // 兼容旧版本
 
-            // 使用最合适的路径
-            String imagePath = processedPath != null ? processedPath : legacyPath;
-
-            Log.d(TAG, String.format("收到预览结果:\n" +
-                            "原始文件: %s\n" +
-                            "处理后文件: %s\n" +
-                            "缩略图: %s\n" +
-                            "legacy路径: %s",
-                    originalFile, processedPath, thumbnailPath, legacyPath));
-
-            if (imagePath == null && originalFile == null) {
+            if (originalFile == null || processedPath == null) {
                 throw new IllegalArgumentException("缺少必要的路径信息");
             }
 
-            // 确保文件存在
-            validateFile("处理后文件", imagePath);
-            if (originalFile != null) {
-                validateFile("原始文件", originalFile);
-            }
-            if (thumbnailPath != null) {
-                validateFile("缩略图", thumbnailPath);
-            }
-
             // 查找匹配的条目
-            int position = findPhotoPosition(originalFile != null ? originalFile : imagePath);
+            int position = findPhotoPosition(originalFile);
 
             if (position != -1) {
                 Log.d(TAG, "找到匹配的图片项，位置: " + position);
                 DocumentPhotoManager.PhotoItem oldItem = photoItems.get(position);
 
-                // 创建新的项目
+                // 创建新的项目，使用原始路径和处理后的路径
                 DocumentPhotoManager.PhotoItem newItem = new DocumentPhotoManager.PhotoItem(
-                        imagePath,  // 使用新的处理后图片路径
-                        thumbnailPath != null ? thumbnailPath : oldItem.getThumbnailPath(),
+                        originalFile,                               // 原始图片路径
+                        processedPath,                             // 处理后图片路径
+                        thumbnailPath,                             // 缩略图路径
                         System.currentTimeMillis()
                 );
 
@@ -367,22 +349,23 @@ public class DocumentActivity extends AppCompatActivity implements PhotoAdapter.
 
                 // 添加历史记录
                 DocumentHistoryManager.HistoryItem historyItem = new DocumentHistoryManager.HistoryItem(
-                        originalFile != null ? originalFile : oldItem.getOriginalPath(),
-                        imagePath,
-                        thumbnailPath,
+                        originalFile,      // 原始图片路径
+                        processedPath,     // 处理后图片路径
+                        thumbnailPath,     // 缩略图路径
                         System.currentTimeMillis()
                 );
 
                 boolean success = DocumentHistoryManager.addHistory(this, historyItem);
                 Log.d(TAG, "历史记录添加: " + (success ? "成功" : "失败"));
             } else {
-                Log.w(TAG, "未找到匹配的图片项，尝试作为新项添加");
                 // 如果找不到现有项，添加为新项
                 DocumentPhotoManager.PhotoItem newItem = new DocumentPhotoManager.PhotoItem(
-                        imagePath,
-                        thumbnailPath,
+                        originalFile,      // 原始图片路径
+                        processedPath,     // 处理后图片路径
+                        thumbnailPath,     // 缩略图路径
                         System.currentTimeMillis()
                 );
+
                 photoItems.add(newItem);
                 photoAdapter.notifyItemInserted(photoItems.size() - 1);
                 updatePhotoCount();
@@ -393,7 +376,6 @@ public class DocumentActivity extends AppCompatActivity implements PhotoAdapter.
             Toast.makeText(this, "更新预览结果失败：" + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
-
     private void validateFile(String label, String path) throws IllegalStateException {
         if (path == null) {
             throw new IllegalStateException(label + "路径为空");

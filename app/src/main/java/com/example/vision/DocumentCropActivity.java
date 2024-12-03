@@ -141,13 +141,13 @@ public class DocumentCropActivity extends AppCompatActivity {
                     Log.d(TAG, "开始处理文档...");
 
                     // 1. 首先保存原始图片
-                    File outputDir = new File(getFilesDir(), "processed_documents");
-                    if (!outputDir.exists() && !outputDir.mkdirs()) {
-                        throw new IOException("无法创建输出目录");
+                    File originalDir = new File(getFilesDir(), "originals");
+                    if (!originalDir.exists() && !originalDir.mkdirs()) {
+                        throw new IOException("无法创建原始图片目录");
                     }
 
                     String timestamp = String.valueOf(System.currentTimeMillis());
-                    File originalFile = new File(outputDir, "ORIGINAL_" + timestamp + ".jpg");
+                    File originalFile = new File(originalDir, "ORIG_" + timestamp + ".jpg");
 
                     // 将当前图片保存为原始图片
                     try (InputStream is = getContentResolver().openInputStream(sourceUri)) {

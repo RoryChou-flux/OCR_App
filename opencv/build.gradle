@@ -5,15 +5,15 @@ apply plugin: 'kotlin-android'
 def openCVersionName = "4.10.0"
 def openCVersionCode = ((4 * 100 + 10) * 100 + 0) * 10 + 0
 
-println "OpenCV: " + openCVersionName + " " + project.buildscript.sourceFile
+println "OpenCV: " +openCVersionName + " " + project.buildscript.sourceFile
 
 android {
     namespace 'org.opencv'
-    compileSdkVersion 31
+    compileSdkVersion 34  // 更新到 34
 
     defaultConfig {
         minSdkVersion 21
-        targetSdkVersion 31
+        targetSdkVersion 34  // 更新到 34
 
         versionCode openCVersionCode
         versionName openCVersionName
@@ -31,8 +31,8 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
-    kotlinOptions {
-        jvmTarget = '1.8'
+    kotlinOptions {        // 添加 Kotlin 配置
+        jvmTarget = "1.8"
     }
 
     buildTypes {
@@ -54,7 +54,6 @@ android {
         prefabPublishing true
         buildConfig true
     }
-
     prefab {
         opencv_jni_shared {
             headers "native/jni/include"
