@@ -1,5 +1,6 @@
 package com.example.vision;
 
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,6 +18,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import android.content.Context;
 
 public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.HistoryViewHolder> {
     private final List<HistoryItem> historyItems = new ArrayList<>();
@@ -85,12 +87,23 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.HistoryV
     public void onBindViewHolder(@NonNull HistoryViewHolder holder, int position) {
         HistoryItem item = historyItems.get(position);
 
-        // 加载缩略图
+        // 加载原始图片（处理前）
         Glide.with(holder.thumbnailImage)
-                .load(new File(item.getThumbnailPath()))
+                .load(new File(item.getOriginalPath()))
                 .centerCrop()
                 .error(android.R.drawable.ic_dialog_alert)
                 .into(holder.thumbnailImage);
+
+        // 当用户点击图片时，新增处理前后对比的逻辑
+        holder.thumbnailImage.setOnClickListener(v -> {
+            if (!isSelectionMode && listener != null && !holder.swipeLayout.isOpen()) {
+                // 打开对比活动，传递两个图片的路径
+                Intent intent = new Intent(v.getContext(), CompareActivity.class);
+                intent.putExtra("originalPath", item.getOriginalPath());     // 原始图片路径
+                intent.putExtra("processedPath", item.getProcessedPath());   // 处理后图片路径
+                v.getContext().startActivity(intent);
+            }
+        });
 
         // 设置时间戳
         holder.timeText.setText(formatTime(item.getTimestamp()));
@@ -127,7 +140,11 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.HistoryV
             } else if (isSelectionMode) {
                 toggleSelection(position);
             } else if (listener != null) {
-                listener.onItemClick(item);
+                // 修改这里，点击整个内容区域也打开对比界面
+                Intent intent = new Intent(v.getContext(), CompareActivity.class);
+                intent.putExtra("originalPath", item.getOriginalPath());     // 原始图片路径
+                intent.putExtra("processedPath", item.getProcessedPath());   // 处理后图片路径
+                v.getContext().startActivity(intent);
             }
         });
     }

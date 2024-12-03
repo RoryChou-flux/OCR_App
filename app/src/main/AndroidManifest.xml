@@ -75,6 +75,8 @@
             android:name="com.canhub.cropper.CropImageActivity"
             android:theme="@style/Theme.AppCompat"/>
 
+        <activity android:name=".PdfActivity" android:exported="false"/>
+
         <activity
             android:name=".PhotoPreviewActivity"
             android:configChanges="orientation|screenSize"

@@ -18,6 +18,10 @@ import com.google.android.material.button.MaterialButton;
 import androidx.appcompat.app.AlertDialog;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import java.io.InputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
 
 public class DocumentCropActivity extends AppCompatActivity {
     private static final String TAG = "CropActivity";
@@ -112,45 +116,108 @@ public class DocumentCropActivity extends AppCompatActivity {
         MaterialButton resetButton = findViewById(R.id.reset_button);
 
         doneButton.setOnClickListener(view -> {
-            Log.d(TAG, "Done button clicked");
+            Log.d(TAG, "完成按钮被点击");
+
+            // 验证裁剪形状
             if (!cropView.isValidShape()) {
-                Log.e(TAG, "Invalid shape");
+                Log.e(TAG, "无效的裁剪形状");
                 Toast.makeText(this, R.string.crop_error_invalid, Toast.LENGTH_SHORT).show();
                 return;
             }
 
+            // 获取并验证角点
             PointF[] corners = cropView.getScaledPoints();
             if (corners == null || corners.length != 4) {
-                Log.e(TAG, "Invalid corners");
+                Log.e(TAG, "无效的角点数据");
                 Toast.makeText(this, R.string.crop_error_invalid, Toast.LENGTH_SHORT).show();
                 return;
             }
 
             showProcessingDialog();
 
+            // 在新线程中处理文档
             new Thread(() -> {
                 try {
-                    Log.d(TAG, "Processing document...");
-                    // 使用 URI 而不是路径
+                    Log.d(TAG, "开始处理文档...");
+
+                    // 1. 首先保存原始图片
+                    File outputDir = new File(getFilesDir(), "processed_documents");
+                    if (!outputDir.exists() && !outputDir.mkdirs()) {
+                        throw new IOException("无法创建输出目录");
+                    }
+
+                    String timestamp = String.valueOf(System.currentTimeMillis());
+                    File originalFile = new File(outputDir, "ORIGINAL_" + timestamp + ".jpg");
+
+                    // 将当前图片保存为原始图片
+                    try (InputStream is = getContentResolver().openInputStream(sourceUri)) {
+                        if (is == null) throw new IOException("无法打开输入流");
+                        try (FileOutputStream fos = new FileOutputStream(originalFile)) {
+                            byte[] buffer = new byte[8192];
+                            int bytesRead;
+                            while ((bytesRead = is.read(buffer)) != -1) {
+                                fos.write(buffer, 0, bytesRead);
+                            }
+                        }
+                    }
+
+                    Log.d(TAG, "原始图片已保存: " + originalFile.getAbsolutePath());
+
+                    // 2. 处理文档
                     DocumentProcessor.DocumentResult result =
                             DocumentProcessor.processDocument(this, sourceUri, corners);
 
+                    // 验证处理结果
                     if (result == null || result.processedPath == null) {
-                        throw new Exception("Processing failed: null result");
+                        throw new Exception("处理失败：结果为空");
                     }
 
+                    // 验证文件是否存在
+                    if (!new File(result.processedPath).exists()) {
+                        throw new Exception("处理后的文件不存在: " + result.processedPath);
+                    }
+
+                    if (result.thumbnailPath != null && !new File(result.thumbnailPath).exists()) {
+                        throw new Exception("缩略图文件不存在: " + result.thumbnailPath);
+                    }
+
+                    // 记录处理结果
+                    Log.d(TAG, "文档处理完成:\n" +
+                            "原始图片路径: " + originalFile.getAbsolutePath() + "\n" +
+                            "处理后路径: " + result.processedPath + "\n" +
+                            "缩略图路径: " + result.thumbnailPath);
+
+                    // 在主线程中处理结果
                     runOnUiThread(() -> {
-                        Log.d(TAG, "Processing complete");
+                        Log.d(TAG, "处理完成，准备返回结果");
                         Intent resultIntent = new Intent();
-                        resultIntent.putExtra("imagePath", result.processedPath);
-                        resultIntent.putExtra("thumbnailPath", result.thumbnailPath);
+
+                        // 确保以下三个路径都正确设置
+                        resultIntent.putExtra("imagePath", result.processedPath);          // 保持向后兼容
+                        resultIntent.putExtra("original_file", originalFile.getAbsolutePath());  // 添加原始文件路径
+                        resultIntent.putExtra("processed_file", result.processedPath);     // 添加处理后的文件路径
+                        resultIntent.putExtra("thumbnail_path", result.thumbnailPath);     // 添加缩略图路径
+                        resultIntent.putExtra("timestamp", timestamp);                     // 添加时间戳
+
+                        Log.d(TAG, String.format("返回Intent数据:\n" +
+                                        "原始文件: %s\n" +
+                                        "处理后文件: %s\n" +
+                                        "缩略图: %s",
+                                originalFile.getAbsolutePath(),
+                                result.processedPath,
+                                result.thumbnailPath));
+
                         setResult(RESULT_OK, resultIntent);
                         finish();
                     });
+
                 } catch (Exception e) {
-                    Log.e(TAG, "Error processing document", e);
+                    Log.e(TAG, "文档处理错误", e);
                     runOnUiThread(() -> {
-                        Toast.makeText(DocumentCropActivity.this, R.string.crop_error_failed, Toast.LENGTH_SHORT).show();
+                        String errorMessage = getString(R.string.crop_error_failed) +
+                                ": " + e.getMessage();
+                        Toast.makeText(DocumentCropActivity.this,
+                                errorMessage, Toast.LENGTH_SHORT).show();
                     });
                 } finally {
                     runOnUiThread(() -> hideProcessingDialog());
@@ -158,8 +225,9 @@ public class DocumentCropActivity extends AppCompatActivity {
             }).start();
         });
 
+        // 重置按钮点击事件
         resetButton.setOnClickListener(view -> {
-            Log.d(TAG, "Reset button clicked");
+            Log.d(TAG, "重置按钮被点击");
             cropView.reset();
             doneButton.setEnabled(false);
         });

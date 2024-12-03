@@ -8,6 +8,7 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import androidx.annotation.NonNull;
 
 public class DocumentHistoryManager {
     private static final String TAG = "DocumentHistoryManager";
@@ -60,20 +61,28 @@ public class DocumentHistoryManager {
         }
     }
 
-    public static void addHistory(Context context, HistoryItem item) {
+    public static boolean addHistory(@NonNull Context context, @NonNull HistoryItem item) {
         try {
+            Log.d(TAG, "Starting addHistory...");
             List<HistoryItem> items = getAllHistory(context);
+            Log.d(TAG, "Current history size: " + items.size());
             items.add(item);
             saveHistory(context, items);
+            Log.d(TAG, "History saved. New size: " + items.size());
+            Log.d(TAG, "History file location: " + new File(context.getFilesDir(), HISTORY_FILE).getAbsolutePath());
+            return true;  // Success case
         } catch (Exception e) {
             Log.e(TAG, "Error adding history", e);
+            return false;  // Failure case
         }
     }
 
     public static List<HistoryItem> getAllHistory(Context context) {
         try {
             File file = new File(context.getFilesDir(), HISTORY_FILE);
+            Log.d(TAG, "Looking for history file at: " + file.getAbsolutePath());
             if (!file.exists()) {
+                Log.d(TAG, "History file not found, returning empty list.");
                 return new ArrayList<>();
             }
 
@@ -84,6 +93,8 @@ public class DocumentHistoryManager {
                 jsonStr.append(line);
             }
             reader.close();
+
+            Log.d(TAG, "File read successfully, length: " + jsonStr.length());
 
             List<HistoryItem> items = new ArrayList<>();
             JSONArray array = new JSONArray(jsonStr.toString());
@@ -119,11 +130,22 @@ public class DocumentHistoryManager {
             }
 
             File file = new File(context.getFilesDir(), HISTORY_FILE);
+            Log.d(TAG, "Saving history to: " + file.getAbsolutePath());
+            Log.d(TAG, "JSON content: " + array.toString());
+
+            // 如果文件不存在，创建新文件
+            if (!file.exists()) {
+                Log.d(TAG, "History file does not exist, creating new file.");
+            } else {
+                Log.d(TAG, "History file exists, updating file.");
+            }
+
             FileWriter writer = new FileWriter(file);
             writer.write(array.toString());
             writer.flush();
             writer.close();
 
+            Log.d(TAG, "History file saved successfully.");
         } catch (Exception e) {
             Log.e(TAG, "Error saving history", e);
         }

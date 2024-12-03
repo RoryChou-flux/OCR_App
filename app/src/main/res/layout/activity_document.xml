@@ -215,7 +215,7 @@
                 android:id="@+id/addPhotoButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="64dp"
+                android:layout_marginBottom="36dp"
                 android:contentDescription="@string/add_photo_desc"
                 android:src="@drawable/ic_add_photo"
                 app:fabSize="normal"
