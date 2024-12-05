@@ -44,37 +44,46 @@ public class CompareActivity extends AppCompatActivity {
             String originalPath = getIntent().getStringExtra("originalPath");
             String processedPath = getIntent().getStringExtra("processedPath");
 
+            Log.d(TAG, "Loading images:\nCropped: " + originalPath + "\nEnhanced: " + processedPath);
+
             if (originalPath == null || processedPath == null) {
-                throw new IllegalArgumentException("Missing image paths");
+                throw new IllegalArgumentException("Missing image paths - Cropped: " + originalPath + ", Enhanced: " + processedPath);
             }
 
             // 验证文件
-            File originalFile = new File(originalPath);
-            File processedFile = new File(processedPath);
+            File croppedFile = new File(originalPath);
+            File enhancedFile = new File(processedPath);
 
-            if (!originalFile.exists() || !processedFile.exists()) {
-                throw new IllegalArgumentException("Image files not found");
+            if (!croppedFile.exists()) {
+                throw new IllegalArgumentException("Cropped file not found: " + originalPath);
+            }
+            if (!enhancedFile.exists()) {
+                throw new IllegalArgumentException("Enhanced file not found: " + processedPath);
             }
 
-            // 配置Glide选项
+            // 配置Glide选项 - 禁用缩放
             RequestOptions options = new RequestOptions()
                     .diskCacheStrategy(DiskCacheStrategy.NONE)
                     .skipMemoryCache(true)
-                    .fitCenter();
+                    .override(originalImage.getWidth(), originalImage.getHeight()) // 保持原始尺寸
+                    .centerInside(); // 使用centerInside而不是fitCenter
 
-            // 加载图片
+            // 加载裁剪后的图片到左侧
             Glide.with(this)
-                    .load(originalFile)
+                    .load(croppedFile)
                     .apply(options)
                     .into(originalImage);
 
+            // 加载增强后的图片到右侧
             Glide.with(this)
-                    .load(processedFile)
+                    .load(enhancedFile)
                     .apply(options)
                     .into(processedImage);
 
         } catch (Exception e) {
             Log.e(TAG, "Error loading images", e);
+            // 打印更详细的错误信息
+            Log.e(TAG, "Intent extras: " + getIntent().getExtras());
             finish();
         }
     }
@@ -87,7 +96,6 @@ public class CompareActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        // 不在onDestroy中使用Glide
         super.onDestroy();
     }
 }

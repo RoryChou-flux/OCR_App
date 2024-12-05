@@ -7,22 +7,30 @@
     android:background="@drawable/background_gradient">
 
     <!-- 顶部工具栏 -->
-    <LinearLayout
+    <androidx.appcompat.widget.Toolbar
         android:id="@+id/topBar"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="16dp"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@android:color/transparent"
         app:layout_constraintTop_toTopOf="parent">
 
+        <!-- 左侧返回按钮 -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/backButton"
             android:layout_width="48dp"
             android:layout_height="48dp"
+            android:layout_marginStart="8dp"
             android:background="@drawable/circle_button_background"
+            android:insetLeft="0dp"
+            android:insetTop="0dp"
+            android:insetRight="0dp"
+            android:insetBottom="0dp"
             app:icon="@drawable/ic_back"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
             app:iconTint="@color/text_primary" />
 
+        <!-- 标题 -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -31,7 +39,8 @@
             android:textColor="@color/text_primary"
             android:textSize="20sp"
             android:textStyle="bold" />
-    </LinearLayout>
+
+    </androidx.appcompat.widget.Toolbar>
 
     <!-- 分屏显示区域 -->
     <LinearLayout
@@ -39,6 +48,7 @@
         android:layout_height="0dp"
         android:orientation="horizontal"
         android:padding="16dp"
+        android:baselineAligned="false"
         app:layout_constraintTop_toBottomOf="@id/topBar"
         app:layout_constraintBottom_toBottomOf="parent">
 
@@ -47,7 +57,9 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:background="@drawable/image_container_background"
+            android:padding="8dp">
 
             <TextView
                 android:layout_width="wrap_content"
@@ -55,21 +67,24 @@
                 android:text="处理前"
                 android:textColor="@color/text_primary"
                 android:textSize="16sp"
-                android:layout_gravity="center"/>
+                android:layout_gravity="center"
+                android:layout_marginBottom="8dp"/>
 
             <ImageView
                 android:id="@+id/originalImage"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_marginTop="8dp"
-                android:scaleType="fitCenter"/>
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:scaleType="centerInside"
+                android:background="@drawable/image_background"
+                android:padding="4dp"/>
         </LinearLayout>
 
         <!-- 分割线 -->
         <View
-            android:layout_width="1dp"
+            android:layout_width="2dp"
             android:layout_height="match_parent"
-            android:layout_marginHorizontal="8dp"
+            android:layout_marginHorizontal="12dp"
             android:background="@color/text_secondary"/>
 
         <!-- 处理后图片 -->
@@ -77,7 +92,9 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:background="@drawable/image_container_background"
+            android:padding="8dp">
 
             <TextView
                 android:layout_width="wrap_content"
@@ -85,14 +102,17 @@
                 android:text="处理后"
                 android:textColor="@color/text_primary"
                 android:textSize="16sp"
-                android:layout_gravity="center"/>
+                android:layout_gravity="center"
+                android:layout_marginBottom="8dp"/>
 
             <ImageView
                 android:id="@+id/processedImage"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_marginTop="8dp"
-                android:scaleType="fitCenter"/>
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:scaleType="centerInside"
+                android:background="@drawable/image_background"
+                android:padding="4dp"/>
         </LinearLayout>
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

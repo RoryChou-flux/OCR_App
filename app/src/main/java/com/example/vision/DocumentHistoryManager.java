@@ -20,6 +20,7 @@ public class DocumentHistoryManager {
         private final String thumbnailPath;
         private final long timestamp;
 
+        // 新的构造方法
         public HistoryItem(String originalPath, String processedPath, String thumbnailPath, long timestamp) {
             this.originalPath = originalPath;
             this.processedPath = processedPath;
@@ -27,7 +28,7 @@ public class DocumentHistoryManager {
             this.timestamp = timestamp;
         }
 
-        public String getOriginalPath() { return originalPath; }
+        public String getOriginalPath() { return originalPath;}
         public String getProcessedPath() { return processedPath; }
         public String getThumbnailPath() { return thumbnailPath; }
         public long getTimestamp() { return timestamp; }
@@ -37,14 +38,14 @@ public class DocumentHistoryManager {
             if (this == obj) return true;
             if (!(obj instanceof HistoryItem)) return false;
             HistoryItem other = (HistoryItem) obj;
-            return originalPath.equals(other.originalPath) &&
+            return originalPath.equals(other.originalPath) &&  // 改名
                     processedPath.equals(other.processedPath) &&
                     thumbnailPath.equals(other.thumbnailPath);
         }
 
         private JSONObject toJson() throws Exception {
             JSONObject json = new JSONObject();
-            json.put("originalPath", originalPath);
+            json.put("originalPath", originalPath);  // 改名
             json.put("processedPath", processedPath);
             json.put("thumbnailPath", thumbnailPath);
             json.put("timestamp", timestamp);
@@ -53,7 +54,7 @@ public class DocumentHistoryManager {
 
         private static HistoryItem fromJson(JSONObject json) throws Exception {
             return new HistoryItem(
-                    json.getString("originalPath"),
+                    json.getString("originalPath"),  // 改名
                     json.getString("processedPath"),
                     json.getString("thumbnailPath"),
                     json.getLong("timestamp")

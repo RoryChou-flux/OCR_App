@@ -112,6 +112,7 @@ public class DocumentCropActivity extends AppCompatActivity {
         }
     }
 
+
     private void setupButtons() {
         MaterialButton resetButton = findViewById(R.id.reset_button);
 
@@ -140,19 +141,19 @@ public class DocumentCropActivity extends AppCompatActivity {
                 try {
                     Log.d(TAG, "开始处理文档...");
 
-                    // 1. 首先保存原始图片
-                    File originalDir = new File(getFilesDir(), "originals");
+                    // 1. 保存裁剪后的图片作为初始图片
+                    File originalDir = new File(getFilesDir(), "cropped");  // 改为 cropped 目录
                     if (!originalDir.exists() && !originalDir.mkdirs()) {
-                        throw new IOException("无法创建原始图片目录");
+                        throw new IOException("无法创建裁剪图片目录");
                     }
 
                     String timestamp = String.valueOf(System.currentTimeMillis());
-                    File originalFile = new File(originalDir, "ORIG_" + timestamp + ".jpg");
+                    File croppedFile = new File(originalDir, "CROP_" + timestamp + ".jpg");  // 改为 CROP_ 前缀
 
-                    // 将当前图片保存为原始图片
+                    // 将当前图片保存为裁剪后的图片
                     try (InputStream is = getContentResolver().openInputStream(sourceUri)) {
                         if (is == null) throw new IOException("无法打开输入流");
-                        try (FileOutputStream fos = new FileOutputStream(originalFile)) {
+                        try (FileOutputStream fos = new FileOutputStream(croppedFile)) {
                             byte[] buffer = new byte[8192];
                             int bytesRead;
                             while ((bytesRead = is.read(buffer)) != -1) {
@@ -161,11 +162,11 @@ public class DocumentCropActivity extends AppCompatActivity {
                         }
                     }
 
-                    Log.d(TAG, "原始图片已保存: " + originalFile.getAbsolutePath());
+                    Log.d(TAG, "裁剪后图片已保存: " + croppedFile.getAbsolutePath());
 
-                    // 2. 处理文档
+                    // 2. 处理文档增强
                     DocumentProcessor.DocumentResult result =
-                            DocumentProcessor.processDocument(this, sourceUri, corners);
+                            DocumentProcessor.processDocument(this, Uri.fromFile(croppedFile), corners);  // 使用裁剪后的图片而不是sourceUri
 
                     // 验证处理结果
                     if (result == null || result.processedPath == null) {
@@ -183,8 +184,8 @@ public class DocumentCropActivity extends AppCompatActivity {
 
                     // 记录处理结果
                     Log.d(TAG, "文档处理完成:\n" +
-                            "原始图片路径: " + originalFile.getAbsolutePath() + "\n" +
-                            "处理后路径: " + result.processedPath + "\n" +
+                            "裁剪后图片路径: " + croppedFile.getAbsolutePath() + "\n" +
+                            "增强后路径: " + result.processedPath + "\n" +
                             "缩略图路径: " + result.thumbnailPath);
 
                     // 在主线程中处理结果
@@ -192,18 +193,18 @@ public class DocumentCropActivity extends AppCompatActivity {
                         Log.d(TAG, "处理完成，准备返回结果");
                         Intent resultIntent = new Intent();
 
-                        // 确保以下三个路径都正确设置
+                        // 更新返回路径
                         resultIntent.putExtra("imagePath", result.processedPath);          // 保持向后兼容
-                        resultIntent.putExtra("original_file", originalFile.getAbsolutePath());  // 添加原始文件路径
-                        resultIntent.putExtra("processed_file", result.processedPath);     // 添加处理后的文件路径
-                        resultIntent.putExtra("thumbnail_path", result.thumbnailPath);     // 添加缩略图路径
+                        resultIntent.putExtra("cropped_file", croppedFile.getAbsolutePath());  // 裁剪后的图片路径
+                        resultIntent.putExtra("enhanced_file", result.processedPath);     // 增强后的图片路径
+                        resultIntent.putExtra("thumbnail_path", result.thumbnailPath);     // 缩略图路径
                         resultIntent.putExtra("timestamp", timestamp);                     // 添加时间戳
 
                         Log.d(TAG, String.format("返回Intent数据:\n" +
-                                        "原始文件: %s\n" +
-                                        "处理后文件: %s\n" +
+                                        "裁剪后文件: %s\n" +
+                                        "增强后文件: %s\n" +
                                         "缩略图: %s",
-                                originalFile.getAbsolutePath(),
+                                croppedFile.getAbsolutePath(),
                                 result.processedPath,
                                 result.thumbnailPath));
 

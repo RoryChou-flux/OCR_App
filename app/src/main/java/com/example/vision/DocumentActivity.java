@@ -260,39 +260,39 @@ public class DocumentActivity extends AppCompatActivity implements PhotoAdapter.
     private void processNewPhoto(@NonNull File photoFile) {
         new Thread(() -> {
             try {
-                // 创建原始文件的副本
-                File originalDir = new File(getFilesDir(), "originals");
-                if (!originalDir.exists()) {
-                    originalDir.mkdirs();
+                // 创建裁剪图片的副本
+                File croppedDir = new File(getFilesDir(), "cropped");  // 改为 cropped 目录
+                if (!croppedDir.exists()) {
+                    croppedDir.mkdirs();
                 }
 
                 String timestamp = String.valueOf(System.currentTimeMillis());
-                File originalCopy = new File(originalDir, "ORIG_" + timestamp + ".jpg");
-                copyFile(photoFile, originalCopy);
+                File croppedFile = new File(croppedDir, "CROP_" + timestamp + ".jpg");  // 使用 CROP_ 前缀
+                copyFile(photoFile, croppedFile);
 
                 // 创建缩略图
-                String thumbnailPath = createThumbnail(originalCopy.getAbsolutePath());
+                String thumbnailPath = createThumbnail(croppedFile.getAbsolutePath());
 
-                // 创建 PhotoItem，使用原始文件和处理后的文件
+                // 创建 PhotoItem，使用裁剪后文件
                 DocumentPhotoManager.PhotoItem newItem = new DocumentPhotoManager.PhotoItem(
-                        originalCopy.getAbsolutePath(),  // 原始文件路径
+                        croppedFile.getAbsolutePath(),   // 裁剪后的文件路径
                         photoFile.getAbsolutePath(),     // 处理后的文件路径作为显示路径
                         thumbnailPath,                   // 缩略图路径
                         System.currentTimeMillis()
                 );
 
-                // 创建历史记录，正确保存原始和处理后的路径
+                // 创建历史记录，保存裁剪和增强后的路径
                 DocumentHistoryManager.HistoryItem historyItem = new DocumentHistoryManager.HistoryItem(
-                        originalCopy.getAbsolutePath(),  // 原始文件路径
-                        photoFile.getAbsolutePath(),     // 处理后的文件路径
-                        thumbnailPath,                   // 缩略图路径
+                        croppedFile.getAbsolutePath(),  // 裁剪后的文件路径
+                        photoFile.getAbsolutePath(),    // 增强后的文件路径
+                        thumbnailPath,                  // 缩略图路径
                         System.currentTimeMillis()
                 );
 
                 boolean success = DocumentHistoryManager.addHistory(this, historyItem);
-                Log.d(TAG, String.format("历史记录添加 %s:\n原始文件: %s\n处理后文件: %s",
+                Log.d(TAG, String.format("历史记录添加 %s:\n裁剪后文件: %s\n增强后文件: %s",
                         success ? "成功" : "失败",
-                        originalCopy.getAbsolutePath(),
+                        croppedFile.getAbsolutePath(),
                         photoFile.getAbsolutePath()));
 
                 runOnUiThread(() -> {
