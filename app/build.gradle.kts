@@ -22,14 +22,18 @@ android {
     }
 
     buildTypes {
-        release {
-            isMinifyEnabled = false
+        getByName("release") {
+            isMinifyEnabled = false // 禁用代码混淆
+            isDebuggable = false // 标记为非调试版本
+            signingConfig = signingConfigs.getByName("debug") // 使用默认的调试签名
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
     }
+
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -38,13 +42,16 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+
     buildFeatures {
         compose = true
         buildConfig = true
     }
+
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
     }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -65,43 +72,39 @@ dependencies {
 
     // 网络请求相关
     implementation("com.squareup.okhttp3:okhttp:4.11.0")
-    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0") // OkHttp日志拦截器
-    implementation("com.squareup.retrofit2:retrofit:2.9.0") // Retrofit
-    implementation("com.squareup.retrofit2:converter-gson:2.9.0") // Retrofit Gson转换器
-    implementation("com.google.code.gson:gson:2.10.1") // Gson JSON处理
+    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.google.code.gson:gson:2.10.1")
 
     // 图片处理
     implementation("com.github.bumptech.glide:glide:4.16.0")
-    implementation(project(":opencv")) // 图片加载
+    implementation(project(":opencv"))
     annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
 
     // UI组件
-    implementation("com.google.android.material:material:1.11.0") // Material Design
-    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0") // 下拉刷新
-    implementation("androidx.recyclerview:recyclerview:1.3.2") // RecyclerView
+    implementation("com.google.android.material:material:1.11.0")
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
 
     // AppCompat 和 ConstraintLayout 依赖
     implementation(libs.appcompat)
     implementation(libs.constraintlayout)
 
-
     implementation("com.vanniktech:android-image-cropper:4.6.0")
-    implementation ("com.github.yalantis:ucrop:2.2.8")
+    implementation("com.github.yalantis:ucrop:2.2.8")
 
     implementation("com.github.bumptech.glide:glide:4.15.1")
     annotationProcessor("com.github.bumptech.glide:compiler:4.15.1")
-    implementation ("com.github.chrisbanes:PhotoView:2.3.0")
+    implementation("com.github.chrisbanes:PhotoView:2.3.0")
 
     // Latex
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("com.github.yalantis:ucrop:2.2.8")
-    // Compressor 库，降级到 2.1.1 版本
     implementation("id.zelory:compressor:2.1.1")
     implementation("com.vanniktech:android-image-cropper:4.6.0")
-
-
 
     // 其他已有的依赖
     implementation(libs.androidx.core.ktx)
